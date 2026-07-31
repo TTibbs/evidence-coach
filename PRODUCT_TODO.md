@@ -10,15 +10,15 @@ Last updated: 2026-07-31
 - [x] Generate practice questions from selected evidence cards and job targets.
 - [x] Add "Build evidence for this gap" actions from job target gaps.
 - [x] Add "Practise this job" from job target detail pages.
-- [ ] Create a first Interview Prep Pack page for saved job targets.
+- [x] Create a first Interview Prep Pack page for saved job targets.
 - [ ] Show "facts used" beside generated CV/interview content.
 
 ## Interview Prep Pack
 
-- [ ] Show a requirements matrix from the job description.
-- [ ] Map best confirmed evidence to each requirement.
-- [ ] List missing-evidence prompts for uncovered requirements.
-- [ ] Generate likely interview questions grounded in role requirements and gaps.
+- [x] Show a requirements matrix from the job description.
+- [x] Map best confirmed evidence to each requirement.
+- [x] List missing-evidence prompts for uncovered requirements.
+- [x] Generate likely interview questions grounded in role requirements and gaps.
 - [ ] Track practice queue progress and answer retries.
 - [ ] Add an exportable one-page preparation summary.
 

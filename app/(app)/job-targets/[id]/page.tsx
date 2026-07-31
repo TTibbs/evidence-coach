@@ -91,9 +91,17 @@ export default function JobTargetDetailPage() {
           <h1 className="font-display text-3xl text-teal-950">{target.title}</h1>
           <p className="text-stone-600">{target.company}</p>
         </div>
-        <Button render={<Link href={practiseHref} />}>
-          Practise this job
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            render={<Link href={`/job-targets/${target.id}/prep`} />}
+          >
+            Prep pack
+          </Button>
+          <Button render={<Link href={practiseHref} />}>
+            Practise this job
+          </Button>
+        </div>
       </div>
 
       <Card>
