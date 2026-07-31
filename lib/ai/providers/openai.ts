@@ -11,6 +11,7 @@ import type {
   CareerAiProvider,
   CreateEvidenceCardInput,
   DecideNextQuestionInput,
+  EnrichEvidenceCardInput,
   ExtractCvInput,
   GenerateCareerContentInput,
   GeneratePracticeQuestionInput,
@@ -21,6 +22,7 @@ import type {
 import {
   CV_EXTRACT_SYSTEM,
   EVIDENCE_DRAFT_SYSTEM,
+  EVIDENCE_ENRICH_SYSTEM,
   EVIDENCE_QUESTIONS_SYSTEM,
   FEEDBACK_SYSTEM,
   GENERATE_SYSTEM,
@@ -98,6 +100,14 @@ export class OpenAiCareerAiProvider implements CareerAiProvider {
     return this.structured(
       evidenceCardDraftSchema,
       EVIDENCE_DRAFT_SYSTEM,
+      JSON.stringify(input),
+    );
+  }
+
+  async enrichEvidenceCard(input: EnrichEvidenceCardInput) {
+    return this.structured(
+      evidenceCardDraftSchema,
+      EVIDENCE_ENRICH_SYSTEM,
       JSON.stringify(input),
     );
   }

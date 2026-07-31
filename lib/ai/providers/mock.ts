@@ -4,6 +4,7 @@ import type {
   CareerAiProvider,
   CreateEvidenceCardInput,
   DecideNextQuestionInput,
+  EnrichEvidenceCardInput,
   ExtractCvInput,
   GenerateCareerContentInput,
   GeneratePracticeQuestionInput,
@@ -96,6 +97,43 @@ export class MockCareerAiProvider implements CareerAiProvider {
           ]
         : [],
       sourceFacts: answers,
+    };
+  }
+
+  async enrichEvidenceCard(input: EnrichEvidenceCardInput) {
+    const card = input.existingCard as {
+      title?: string;
+      summary?: string;
+      situation?: string;
+      task?: string | null;
+      actions?: string[];
+      outcome?: string;
+      reflection?: string | null;
+      skills?: string[];
+      competencies?: string[];
+      metrics?: { label: string; value: string; confirmed: boolean }[];
+      source_facts?: string[];
+      sourceFacts?: string[];
+    };
+
+    return {
+      title: card.title || "Enriched evidence example",
+      summary: `${card.summary || "Evidence example"} ${input.additionalDetails}`.trim(),
+      situation: card.situation || input.additionalDetails,
+      task: card.task ?? null,
+      actions: [...(card.actions ?? []), input.additionalDetails],
+      outcome: card.outcome || "More detail was added for review.",
+      reflection: card.reflection ?? null,
+      skills: card.skills ?? [],
+      competencies: card.competencies ?? [],
+      metrics: (card.metrics ?? []).map((metric) => ({
+        ...metric,
+        confirmed: false,
+      })),
+      sourceFacts: [
+        ...(card.sourceFacts ?? card.source_facts ?? []),
+        input.additionalDetails,
+      ],
     };
   }
 

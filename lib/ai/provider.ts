@@ -33,6 +33,11 @@ export type CreateEvidenceCardInput = {
   topic: string;
   qa: { question: string; answer: string }[];
 };
+export type EnrichEvidenceCardInput = {
+  experience: ExperienceInput;
+  existingCard: unknown;
+  additionalDetails: string;
+};
 export type AnalyseJobDescriptionInput = {
   title: string;
   description: string;
@@ -94,6 +99,8 @@ export interface CareerAiProvider {
   decideNextQuestion(input: DecideNextQuestionInput): Promise<NextQuestionResult>;
 
   createEvidenceCard(input: CreateEvidenceCardInput): Promise<EvidenceCardDraft>;
+
+  enrichEvidenceCard(input: EnrichEvidenceCardInput): Promise<EvidenceCardDraft>;
 
   analyseJobDescription(
     input: AnalyseJobDescriptionInput,

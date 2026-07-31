@@ -4,6 +4,7 @@ import { assertWithinLimit, EntitlementError } from "@/lib/entitlements/check";
 import {
   decideNextQuestion,
   draftEvidenceCard,
+  enrichEvidenceCard,
   suggestEvidenceQuestions,
 } from "@/lib/ai/evidence";
 import { AiProviderError } from "@/lib/ai/errors";
@@ -192,6 +193,71 @@ export async function POST(request: Request) {
       interview: updated,
       currentQuestion: nextQuestions[currentIndex],
     });
+  }
+
+  if (action === "enrich") {
+    const enrichSchema = z.object({
+      cardId: z.string().uuid(),
+      additionalDetails: z.string().trim().min(1),
+    });
+    const parsed = enrichSchema.safeParse(body);
+    if (!parsed.success) return jsonError(parsed.error.message);
+
+    const { data: existingCard, error } = await supabase
+      .from("evidence_cards")
+      .select("*, experiences(*)")
+      .eq("id", parsed.data.cardId)
+      .eq("user_id", user!.id)
+      .single();
+
+    if (error || !existingCard) return jsonError("Evidence card not found", 404);
+    if (existingCard.confidence_status !== "draft") {
+      return jsonError("Only draft evidence cards can be enriched");
+    }
+
+    const experience = existingCard.experiences as {
+      title: string;
+      organisation?: string | null;
+      description?: string | null;
+      responsibilities?: string[] | null;
+    };
+    const draft = await enrichEvidenceCard(
+      {
+        experience: {
+          title: experience.title,
+          organisation: experience.organisation,
+          description: experience.description,
+          responsibilities: experience.responsibilities ?? [],
+        },
+        existingCard,
+        additionalDetails: parsed.data.additionalDetails,
+      },
+      user!.id,
+    );
+
+    const { data: card, error: updateError } = await supabase
+      .from("evidence_cards")
+      .update({
+        title: draft.title,
+        summary: draft.summary,
+        situation: draft.situation,
+        task: draft.task,
+        actions: draft.actions,
+        outcome: draft.outcome,
+        reflection: draft.reflection,
+        skills: draft.skills,
+        competencies: draft.competencies,
+        metrics: draft.metrics,
+        source_facts: draft.sourceFacts,
+        confidence_status: "draft",
+      })
+      .eq("id", existingCard.id)
+      .eq("user_id", user!.id)
+      .select("*, experiences(title, organisation)")
+      .single();
+
+    if (updateError) return jsonError(updateError.message, 500);
+    return NextResponse.json({ card });
   }
 
   if (action === "confirm") {

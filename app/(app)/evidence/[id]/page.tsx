@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { VoiceDictationControl } from "@/components/voice-dictation-control";
+import { mergeTranscript } from "@/lib/transcript-text";
 
 type CardData = {
   id: string;
@@ -34,6 +36,8 @@ export default function EvidenceCardPage() {
   const [card, setCard] = useState<CardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [additionalDetails, setAdditionalDetails] = useState("");
+  const [enriching, setEnriching] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -135,6 +139,29 @@ export default function EvidenceCardPage() {
     router.refresh();
   }
 
+  async function enrichCard() {
+    if (!card || !additionalDetails.trim()) return;
+    setEnriching(true);
+    const res = await fetch("/api/evidence/interview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "enrich",
+        cardId: card.id,
+        additionalDetails: additionalDetails.trim(),
+      }),
+    });
+    const data = await res.json();
+    setEnriching(false);
+    if (!res.ok) {
+      toast.error(data.error || "Could not add details");
+      return;
+    }
+    setCard(data.card);
+    setAdditionalDetails("");
+    toast.success("Suggested updates added. Review before confirming");
+  }
+
   if (loading || !card) {
     return <p className="text-stone-600">Loading card…</p>;
   }
@@ -170,6 +197,41 @@ export default function EvidenceCardPage() {
           </Button>
         </div>
       </div>
+
+      {card.confidence_status === "draft" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Add missing details</CardTitle>
+            <CardDescription>
+              Remembered another responsibility, role detail, action, or result?
+              Add it here and review the updated draft before confirming.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Textarea
+              rows={4}
+              value={additionalDetails}
+              onChange={(e) => setAdditionalDetails(e.target.value)}
+              placeholder="Add the details you forgot to mention..."
+              aria-label="Missing evidence details"
+            />
+            <VoiceDictationControl
+              onTranscript={(transcript) =>
+                setAdditionalDetails((current) =>
+                  mergeTranscript(current, transcript),
+                )
+              }
+            />
+            <Button
+              type="button"
+              onClick={enrichCard}
+              disabled={enriching || !additionalDetails.trim()}
+            >
+              {enriching ? "Adding details..." : "Suggest updates"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

@@ -14,6 +14,7 @@ import type {
   CareerAiProvider,
   CreateEvidenceCardInput,
   DecideNextQuestionInput,
+  EnrichEvidenceCardInput,
   ExtractCvInput,
   GenerateCareerContentInput,
   GeneratePracticeQuestionInput,
@@ -24,6 +25,7 @@ import type {
 import {
   CV_EXTRACT_SYSTEM,
   EVIDENCE_DRAFT_SYSTEM,
+  EVIDENCE_ENRICH_SYSTEM,
   EVIDENCE_QUESTIONS_SYSTEM,
   FEEDBACK_SYSTEM,
   GENERATE_SYSTEM,
@@ -164,6 +166,15 @@ export class GeminiCareerAiProvider implements CareerAiProvider {
     const { data } = await geminiStructured(
       evidenceCardDraftSchema,
       EVIDENCE_DRAFT_SYSTEM,
+      JSON.stringify(input),
+    );
+    return data;
+  }
+
+  async enrichEvidenceCard(input: EnrichEvidenceCardInput) {
+    const { data } = await geminiStructured(
+      evidenceCardDraftSchema,
+      EVIDENCE_ENRICH_SYSTEM,
       JSON.stringify(input),
     );
     return data;

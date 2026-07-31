@@ -92,6 +92,33 @@ Rules:
   - Do not invent achievements, ownership, or outcomes the user did not describe.
 `;
 
+export const EVIDENCE_ENRICH_SYSTEM = `${GROUNDING_RULES}
+Update an existing draft evidence card using only:
+- the existing evidence card fields,
+- the source experience,
+- and the user's additional details.
+
+Return a full replacement draft, not a patch, as JSON with exactly these fields (camelCase):
+{
+  "title": string,
+  "summary": string,
+  "situation": string,
+  "task": string | null,
+  "actions": string[],
+  "outcome": string,
+  "reflection": string | null,
+  "skills": string[],
+  "competencies": string[],
+  "metrics": [{ "label": string, "value": string, "confirmed": false }],
+  "sourceFacts": string[]
+}
+Rules:
+- Preserve useful existing card facts unless the new details clarify or replace them.
+- Add the user's additional details into sourceFacts.
+- Do not invent responsibilities, achievements, ownership, outcomes, or numbers.
+- Metrics must remain confirmed=false until the user confirms the card.
+- Keep the result as a draft for user review.`;
+
 export const GENERATE_SYSTEM = `${GROUNDING_RULES}
 Generate content only from confirmed evidence cards and optional job target.
 Do not add unsupported claims from the job description.

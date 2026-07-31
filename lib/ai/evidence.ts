@@ -55,3 +55,32 @@ export async function draftEvidenceCard(
   );
   return validateAiPayload(evidenceCardDraftSchema, result, "Evidence card");
 }
+
+export async function enrichEvidenceCard(
+  params: {
+    experience: ExperienceInput;
+    existingCard: unknown;
+    additionalDetails: string;
+  },
+  userId: string,
+) {
+  const result = await withCareerAi(
+    { userId, operation: "evidence_card" },
+    (provider) => provider.enrichEvidenceCard(params),
+  );
+  const draft = validateAiPayload(
+    evidenceCardDraftSchema,
+    result,
+    "Enriched evidence card",
+  );
+  const sourceFacts = [...draft.sourceFacts];
+  if (!sourceFacts.some((fact) => fact.includes(params.additionalDetails))) {
+    sourceFacts.push(params.additionalDetails);
+  }
+
+  return {
+    ...draft,
+    metrics: draft.metrics.map((metric) => ({ ...metric, confirmed: false })),
+    sourceFacts,
+  };
+}
