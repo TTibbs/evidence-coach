@@ -40,11 +40,15 @@ export class MockCareerAiProvider implements CareerAiProvider {
   }
 
   async suggestEvidenceQuestions(input: SuggestEvidenceQuestionsInput) {
-    void input;
+    const topic = input.focus
+      ? `${input.focus} example`
+      : "Helping a new starter";
     return {
-      topic: "Helping a new starter",
+      topic,
       questions: [
-        "What was happening when the new starter needed help?",
+        input.focus
+          ? `When did you show ${input.focus} in this experience?`
+          : "What was happening when the new starter needed help?",
         "What did you personally do?",
         "What changed as a result?",
         "How did you know it worked?",

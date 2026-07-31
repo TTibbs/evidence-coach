@@ -143,7 +143,10 @@ export class GeminiCareerAiProvider implements CareerAiProvider {
     const { data } = await geminiStructured(
       interviewQuestionsSchema,
       EVIDENCE_QUESTIONS_SYSTEM,
-      JSON.stringify(input.experience),
+      JSON.stringify({
+        experience: input.experience,
+        focus: input.focus ?? null,
+      }),
     );
     return data;
   }

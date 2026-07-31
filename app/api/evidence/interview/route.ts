@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 
 const startSchema = z.object({
   experienceId: z.string().uuid(),
+  focus: z.string().optional().nullable(),
 });
 
 export async function POST(request: Request) {
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
         responsibilities: experience.responsibilities ?? [],
       },
       user!.id,
+      parsed.data.focus ?? undefined,
     );
 
     const { data: interview, error: insertError } = await supabase

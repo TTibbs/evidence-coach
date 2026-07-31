@@ -12,10 +12,11 @@ export type { ExperienceInput };
 export async function suggestEvidenceQuestions(
   experience: ExperienceInput,
   userId: string,
+  focus?: string,
 ) {
   const result = await withCareerAi(
     { userId, operation: "evidence_questions" },
-    (provider) => provider.suggestEvidenceQuestions({ experience }),
+    (provider) => provider.suggestEvidenceQuestions({ experience, focus }),
   );
   return validateAiPayload(
     interviewQuestionsSchema,

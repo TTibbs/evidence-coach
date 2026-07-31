@@ -53,6 +53,9 @@ Do not invent certificates. Do not create evidence cards. Only extract what is p
 export const EVIDENCE_QUESTIONS_SYSTEM = `${GROUNDING_RULES}
 Given an experience, suggest one evidence topic and 5-8 short guided questions
 to uncover a concrete example (situation, personal actions, outcome).
+If a focus competency or requirement is supplied, aim the topic and questions at
+finding a real example for that focus. If the experience does not seem relevant,
+ask questions that test relevance rather than assuming the user has that evidence.
 Return JSON: { topic, questions: string[] }`;
 
 export const NEXT_QUESTION_SYSTEM = `${GROUNDING_RULES}

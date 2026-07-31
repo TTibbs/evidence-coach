@@ -25,6 +25,7 @@ type ExperienceRowProps = {
   title: string;
   organisation: string | null;
   evidenceCount: number;
+  focus?: string;
 };
 
 export function ExperienceRow({
@@ -32,6 +33,7 @@ export function ExperienceRow({
   title,
   organisation,
   evidenceCount,
+  focus,
 }: ExperienceRowProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -63,7 +65,11 @@ export function ExperienceRow({
   return (
     <li className="flex items-stretch gap-1 rounded-lg border border-stone-200 bg-white hover:border-teal-300">
       <Link
-        href={`/experiences/${id}`}
+        href={
+          focus
+            ? `/experiences/${id}?focus=${encodeURIComponent(focus)}`
+            : `/experiences/${id}`
+        }
         className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3"
       >
         <div className="min-w-0">

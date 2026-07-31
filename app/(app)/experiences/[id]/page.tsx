@@ -6,10 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourceCvPanel } from "@/components/source-cv-panel";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+};
 
-export default async function ExperienceDetailPage({ params }: Props) {
+export default async function ExperienceDetailPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const query = await searchParams;
+  const focus = query.focus?.trim();
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,10 +43,31 @@ export default async function ExperienceDetailPage({ params }: Props) {
           <h1 className="font-display text-3xl text-teal-950">{experience.title}</h1>
           <p className="text-stone-600">{experience.organisation}</p>
         </div>
-        <Button render={<Link href={`/evidence/interview/new?experienceId=${experience.id}`} />}>
+        <Button
+          render={
+            <Link
+              href={
+                focus
+                  ? `/evidence/interview/new?experienceId=${experience.id}&focus=${encodeURIComponent(focus)}`
+                  : `/evidence/interview/new?experienceId=${experience.id}`
+              }
+            />
+          }
+        >
           Create evidence card
         </Button>
       </div>
+
+      {focus && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-medium text-amber-950">
+            Focused evidence gap
+          </p>
+          <p className="mt-1 text-sm text-amber-900">
+            The guided interview will look for a real example around: {focus}
+          </p>
+        </div>
+      )}
 
       {experience.description && (
         <Card>

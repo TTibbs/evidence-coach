@@ -79,7 +79,10 @@ export class OpenAiCareerAiProvider implements CareerAiProvider {
     return this.structured(
       interviewQuestionsSchema,
       EVIDENCE_QUESTIONS_SYSTEM,
-      JSON.stringify(input.experience),
+      JSON.stringify({
+        experience: input.experience,
+        focus: input.focus ?? null,
+      }),
     );
   }
 

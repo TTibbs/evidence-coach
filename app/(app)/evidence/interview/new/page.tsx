@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 function InterviewInner() {
   const searchParams = useSearchParams();
   const experienceId = searchParams.get("experienceId");
+  const focus = searchParams.get("focus");
   const router = useRouter();
   const [interviewId, setInterviewId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
@@ -30,7 +31,7 @@ function InterviewInner() {
       const res = await fetch("/api/evidence/interview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start", experienceId }),
+        body: JSON.stringify({ action: "start", experienceId, focus }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -45,7 +46,7 @@ function InterviewInner() {
       setLoading(false);
     }
     start();
-  }, [experienceId, router]);
+  }, [experienceId, focus, router]);
 
   async function submitAnswer() {
     if (!interviewId || !answer.trim()) return;
@@ -88,6 +89,7 @@ function InterviewInner() {
         <CardTitle className="font-display text-2xl">Evidence interview</CardTitle>
         <CardDescription>
           Topic: {topic}. One question at a time — answer from real experience only.
+          {focus ? ` Focus: ${focus}.` : ""}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

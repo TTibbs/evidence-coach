@@ -4,7 +4,13 @@ import { ExperienceRow } from "@/components/experience-row";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default async function ExperiencesPage() {
+type Props = {
+  searchParams: Promise<Record<string, string | undefined>>;
+};
+
+export default async function ExperiencesPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const focus = params.focus?.trim();
   const supabase = await createClient();
   const {
     data: { user },
@@ -45,6 +51,17 @@ export default async function ExperiencesPage() {
         </div>
       </div>
 
+      {focus && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-medium text-amber-950">
+            Choose an experience for this gap
+          </p>
+          <p className="mt-1 text-sm text-amber-900">
+            Start a guided interview focused on: {focus}
+          </p>
+        </div>
+      )}
+
       {(!experiences || experiences.length === 0) && (
         <Card>
           <CardHeader>
@@ -78,6 +95,7 @@ export default async function ExperiencesPage() {
                   title={exp.title}
                   organisation={exp.organisation}
                   evidenceCount={count}
+                  focus={focus}
                 />
               );
             })}

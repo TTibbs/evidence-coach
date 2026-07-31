@@ -80,6 +80,8 @@ export default function JobTargetDetailPage() {
   if (!target) return <p className="text-stone-600">Loading…</p>;
 
   const evidenceGaps = target.match_summary?.gaps ?? [];
+  const gapFocusHref = (gap: string) =>
+    `/experiences?focus=${encodeURIComponent(gap)}`;
 
   return (
     <div className="space-y-6">
@@ -129,8 +131,11 @@ export default function JobTargetDetailPage() {
                     {evidenceGaps.length > 4 ? "…" : ""}
                   </p>
                 </div>
-                <Button variant="outline" render={<Link href="/experiences" />}>
-                  Add evidence
+                <Button
+                  variant="outline"
+                  render={<Link href={gapFocusHref(evidenceGaps[0])} />}
+                >
+                  Build evidence
                 </Button>
               </div>
             </div>
@@ -166,9 +171,20 @@ export default function JobTargetDetailPage() {
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-1">
                   {(target.match_summary?.[key] ?? []).map((item) => (
-                    <Badge key={item} variant={variant}>
-                      {item}
-                    </Badge>
+                    key === "gaps" ? (
+                      <Button
+                        key={item}
+                        size="sm"
+                        variant="outline"
+                        render={<Link href={gapFocusHref(item)} />}
+                      >
+                        {item}
+                      </Button>
+                    ) : (
+                      <Badge key={item} variant={variant}>
+                        {item}
+                      </Badge>
+                    )
                   ))}
                   {(target.match_summary?.[key] ?? []).length === 0 && (
                     <p className="text-sm text-stone-500">None listed</p>

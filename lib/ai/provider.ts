@@ -18,7 +18,10 @@ export type ExperienceInput = {
 };
 
 export type ExtractCvInput = { cvText: string };
-export type SuggestEvidenceQuestionsInput = { experience: ExperienceInput };
+export type SuggestEvidenceQuestionsInput = {
+  experience: ExperienceInput;
+  focus?: string;
+};
 export type DecideNextQuestionInput = {
   experience: ExperienceInput;
   topic: string;
