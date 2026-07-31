@@ -328,15 +328,47 @@ export const practiceQuestionSchema = z.object({
   question: z.string().min(1),
 });
 
-export const jdAnalysisSchema = z.object({
-  extractedSkills: z.array(z.string()),
-  extractedCompetencies: z.array(z.string()),
-  matchSummary: z.object({
-    strong: z.array(z.string()),
-    partial: z.array(z.string()),
-    gaps: z.array(z.string()),
+function normalizeJdAnalysis(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  const matchSummary =
+    record.matchSummary ??
+    record.match_summary ??
+    (record.strong || record.partial || record.gaps
+      ? {
+          strong: record.strong,
+          partial: record.partial,
+          gaps: record.gaps,
+        }
+      : undefined);
+
+  return {
+    ...record,
+    extractedSkills:
+      record.extractedSkills ?? record.extracted_skills ?? record.skills,
+    extractedCompetencies:
+      record.extractedCompetencies ??
+      record.extracted_competencies ??
+      record.competencies,
+    matchSummary,
+  };
+}
+
+export const jdAnalysisSchema = z.preprocess(
+  normalizeJdAnalysis,
+  z.object({
+    extractedSkills: z.array(z.string()),
+    extractedCompetencies: z.array(z.string()),
+    matchSummary: z.object({
+      strong: z.array(z.string()),
+      partial: z.array(z.string()),
+      gaps: z.array(z.string()),
+    }),
   }),
-});
+);
 
 export const practiceScoresSchema = z.object({
   relevance: z.number().min(0).max(100),

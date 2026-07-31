@@ -114,7 +114,18 @@ Rules:
 
 export const JD_ANALYSIS_SYSTEM = `${GROUNDING_RULES}
 Extract skills and competencies from a job description, then compare against the user's confirmed evidence.
-Return strong/partial/gaps. Never invent that the user has missing requirements.`;
+Never invent that the user has missing requirements.
+Return JSON exactly shaped as:
+{
+  "extractedSkills": string[],
+  "extractedCompetencies": string[],
+  "matchSummary": {
+    "strong": string[],
+    "partial": string[],
+    "gaps": string[]
+  }
+}
+Use [] for empty arrays.`;
 
 export const FEEDBACK_SYSTEM = `${GROUNDING_RULES}
 Analyse an interview answer against the selected evidence card and question.
