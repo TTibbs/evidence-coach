@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RETENTION_POLICY } from "@/lib/retention";
 
 type Attempt = {
   id: string;
@@ -52,6 +53,14 @@ function FeedbackInner() {
 
   async function deleteAudio() {
     if (!attempt?.audio_path) return;
+    if (
+      !confirm(
+        "Delete this stored audio recording? The transcript and feedback will remain.",
+      )
+    ) {
+      return;
+    }
+
     const res = await fetch(`/api/files/audio?attemptId=${attempt.id}`, {
       method: "DELETE",
     });
@@ -95,6 +104,8 @@ function FeedbackInner() {
           <p className="text-stone-700">{attempt.feedback.summary}</p>
           <p className="mt-3 text-xs text-stone-500">
             Scores are progress indicators, not a definitive measure of interview ability.
+            Feedback does not assess personality, emotion, honesty, employability, or
+            whether you would get the job.
           </p>
         </CardContent>
       </Card>
@@ -173,6 +184,9 @@ function FeedbackInner() {
         </CardHeader>
         <CardContent>
           <p className="whitespace-pre-wrap text-stone-700">{attempt.answer_text}</p>
+          <p className="mt-3 text-xs text-stone-500">
+            {RETENTION_POLICY.practiceAudio} {RETENTION_POLICY.practiceTranscripts}
+          </p>
           {attempt.audio_path && (
             <Button className="mt-4" variant="destructive" size="sm" onClick={deleteAudio}>
               Delete audio recording

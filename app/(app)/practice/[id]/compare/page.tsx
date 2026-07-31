@@ -1,10 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Attempt = {
   id: string;
@@ -16,6 +25,9 @@ type Attempt = {
 export default function CompareAttemptsPage() {
   const { id } = useParams<{ id: string }>();
   const [attempts, setAttempts] = useState<Attempt[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [leftId, setLeftId] = useState("");
+  const [rightId, setRightId] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -23,23 +35,35 @@ export default function CompareAttemptsPage() {
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || "Failed to load");
+        setLoading(false);
         return;
       }
-      setAttempts(data.session.practice_attempts ?? []);
+      const loaded = (data.session.practice_attempts ?? []) as Attempt[];
+      setAttempts(loaded);
+      setLeftId(loaded.at(0)?.id ?? "");
+      setRightId(loaded.at(-1)?.id ?? "");
+      setLoading(false);
     }
     load();
   }, [id]);
 
+  if (loading) {
+    return <p className="text-stone-600">Loading attempts…</p>;
+  }
+
   if (attempts.length < 2) {
     return (
-      <p className="text-stone-600">
-        Complete at least two attempts to compare them side by side.
-      </p>
+      <div className="space-y-4">
+        <p className="text-stone-600">
+          Complete at least two attempts to compare them side by side.
+        </p>
+        <Button render={<Link href={`/practice/${id}`} />}>Try another answer</Button>
+      </div>
     );
   }
 
-  const a = attempts[0];
-  const b = attempts[attempts.length - 1];
+  const a = attempts.find((attempt) => attempt.id === leftId) ?? attempts[0]!;
+  const b = attempts.find((attempt) => attempt.id === rightId) ?? attempts.at(-1)!;
   const keys = Array.from(
     new Set([...Object.keys(a.scores ?? {}), ...Object.keys(b.scores ?? {})]),
   );
@@ -52,6 +76,52 @@ export default function CompareAttemptsPage() {
           Attempt {a.attempt_number} vs attempt {b.attempt_number}
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Choose attempts</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          <Select
+            value={a.id}
+            onValueChange={(value) => setLeftId(value ?? "")}
+            items={attempts.map((attempt) => ({
+              value: attempt.id,
+              label: `Attempt ${attempt.attempt_number}`,
+            }))}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {attempts.map((attempt) => (
+                <SelectItem key={attempt.id} value={attempt.id}>
+                  Attempt {attempt.attempt_number}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={b.id}
+            onValueChange={(value) => setRightId(value ?? "")}
+            items={attempts.map((attempt) => ({
+              value: attempt.id,
+              label: `Attempt ${attempt.attempt_number}`,
+            }))}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {attempts.map((attempt) => (
+                <SelectItem key={attempt.id} value={attempt.id}>
+                  Attempt {attempt.attempt_number}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         {[a, b].map((attempt) => (
@@ -70,6 +140,13 @@ export default function CompareAttemptsPage() {
               <p className="whitespace-pre-wrap text-sm text-stone-700">
                 {attempt.answer_text}
               </p>
+              <Button
+                size="sm"
+                variant="outline"
+                render={<Link href={`/practice/${id}/feedback?attempt=${attempt.id}`} />}
+              >
+                View feedback
+              </Button>
             </CardContent>
           </Card>
         ))}

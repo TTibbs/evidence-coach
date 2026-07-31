@@ -6,6 +6,8 @@ import { extractCvFromText } from "@/lib/ai/extract-cv";
 import { AiProviderError } from "@/lib/ai/errors";
 import { NextResponse } from "next/server";
 
+const MAX_CV_BYTES = 10_000_000;
+
 export async function POST(request: Request) {
   const { user, supabase, response } = await requireUser();
   if (response) return response;
@@ -20,6 +22,7 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const file = form.get("file");
   if (!(file instanceof File)) return jsonError("Missing file");
+  if (file.size > MAX_CV_BYTES) return jsonError("CV file must be 10 MB or smaller");
 
   const filename = file.name;
   if (!/\.(pdf|docx)$/i.test(filename)) {

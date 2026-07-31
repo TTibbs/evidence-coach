@@ -45,6 +45,12 @@ function createEntry(
   };
 }
 
+function stripClientId(entry: ReviewEntry): ExtractedExperienceDraft {
+  const draft: ExtractedExperienceDraft = { ...entry };
+  delete (draft as Partial<ReviewEntry>).clientId;
+  return draft;
+}
+
 const SECTION_ORDER = [
   "experience",
   "projects",
@@ -212,14 +218,17 @@ export default function CvReviewPage() {
     setSaving(true);
     const payload = {
       name,
-      experiences: experiences.map(({ clientId: _clientId, ...exp }) => ({
+      experiences: experiences.map((entry) => {
+        const exp = stripClientId(entry);
+        return {
         ...exp,
         responsibilities: (exp.responsibilities ?? [])
           .map((line) => line.trim())
           .filter(Boolean),
         startDate: exp.startDate || null,
         endDate: exp.isCurrent ? null : exp.endDate || null,
-      })),
+        };
+      }),
     };
     const res = await fetch(`/api/cv/${id}`, {
       method: "POST",

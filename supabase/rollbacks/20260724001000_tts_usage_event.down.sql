@@ -1,0 +1,2 @@
+-- Rollback note: Postgres cannot safely remove enum values once added.
+-- Leave 'tts' in public.usage_event_type on rollback.

@@ -159,6 +159,7 @@ export type MeteredAction =
   | "content_generation"
   | "text_practice"
   | "voice_transcription"
+  | "tts"
   | "practice_feedback";
 
 export async function assertWithinLimit(
@@ -232,10 +233,11 @@ export async function assertWithinLimit(
       break;
     }
     case "text_practice":
+    case "tts":
     case "practice_feedback": {
       const used = await countUsage(
         userId,
-        ["text_practice", "voice_transcription", "practice_feedback"],
+        ["text_practice", "voice_transcription", "tts", "practice_feedback"],
         monthStart,
       );
       if (used >= config.maxPracticeAttemptsPerMonth) {
@@ -251,7 +253,7 @@ export async function assertWithinLimit(
       }
       const used = await countUsage(
         userId,
-        ["text_practice", "voice_transcription", "practice_feedback"],
+        ["text_practice", "voice_transcription", "tts", "practice_feedback"],
         monthStart,
       );
       if (used >= config.maxPracticeAttemptsPerMonth) {
@@ -289,7 +291,7 @@ export async function getUsageSummary(userId: string) {
       countUsage(userId, ["content_generation"], monthStart),
       countUsage(
         userId,
-        ["text_practice", "voice_transcription", "practice_feedback"],
+        ["text_practice", "voice_transcription", "tts", "practice_feedback"],
         monthStart,
       ),
       countUsage(userId, ["cv_import"], monthStart),

@@ -4,6 +4,17 @@ import { AiProviderError } from "@/lib/ai/errors";
 import { withCareerAi } from "@/lib/ai/run";
 import { NextResponse } from "next/server";
 
+const MAX_AUDIO_BYTES = 25_000_000;
+const SUPPORTED_AUDIO_TYPES = new Set([
+  "audio/webm",
+  "audio/mp4",
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/ogg",
+]);
+
 export async function POST(request: Request) {
   const { user, supabase, response } = await requireUser();
   if (response) return response;
@@ -20,6 +31,13 @@ export async function POST(request: Request) {
   const sessionId = form.get("sessionId");
   if (!(file instanceof File)) return jsonError("Missing audio");
   if (typeof sessionId !== "string") return jsonError("Missing sessionId");
+  if (file.size > MAX_AUDIO_BYTES) {
+    return jsonError("Audio recording must be 25 MB or smaller");
+  }
+  const mimeType = file.type || "audio/webm";
+  if (!SUPPORTED_AUDIO_TYPES.has(mimeType)) {
+    return jsonError("Unsupported audio format");
+  }
 
   const { data: session } = await supabase
     .from("practice_sessions")
@@ -36,7 +54,7 @@ export async function POST(request: Request) {
   const { error: uploadError } = await supabase.storage
     .from("practice-audio")
     .upload(path, buffer, {
-      contentType: file.type || "audio/webm",
+      contentType: mimeType,
       upsert: false,
     });
 
@@ -48,7 +66,7 @@ export async function POST(request: Request) {
       (provider) =>
         provider.transcribeAudio({
           audio: buffer,
-          mimeType: file.type || "audio/webm",
+          mimeType,
           filename: "answer.webm",
         }),
     );

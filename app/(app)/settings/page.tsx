@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AiDisclosure } from "@/components/ai-disclosure";
+import { RETENTION_POLICY } from "@/lib/retention";
 
 type UsageSummary = {
   plan: string;
@@ -32,6 +33,7 @@ export default function SettingsPage() {
   const [usage, setUsage] = useState<UsageSummary | null>(null);
   const [imports, setImports] = useState<CvImport[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -49,6 +51,10 @@ export default function SettingsPage() {
   }, []);
 
   async function deleteCv(id: string) {
+    if (!confirm("Delete this stored CV file? Your saved experiences will remain.")) {
+      return;
+    }
+
     const res = await fetch(`/api/files/cv?id=${id}`, { method: "DELETE" });
     const data = await res.json();
     if (!res.ok) {
@@ -79,6 +85,30 @@ export default function SettingsPage() {
     await supabase.auth.signOut();
     toast.success("Account deleted");
     router.push("/");
+  }
+
+  async function exportAccountData() {
+    setExporting(true);
+    const res = await fetch("/api/account");
+    const data = await res.json();
+    setExporting(false);
+    if (!res.ok) {
+      toast.error(data.error || "Export failed");
+      return;
+    }
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "evidence-coach-export.json";
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    toast.success("Account data exported");
   }
 
   return (
@@ -120,6 +150,7 @@ export default function SettingsPage() {
           <CardTitle>Uploaded CVs</CardTitle>
           <CardDescription>
             Delete stored CV files independently of your experience entries.
+            {` ${RETENTION_POLICY.extractedCvText}`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -167,14 +198,19 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Data retention</CardTitle>
           <CardDescription>
-            Practice audio can be deleted from each attempt&apos;s feedback page.
-            Transcripts may remain after audio deletion.
+            Uploaded files and recordings are stored under your user ID.
+            {` ${RETENTION_POLICY.practiceAudio} ${RETENTION_POLICY.practiceTranscripts}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="destructive" onClick={deleteAccount} disabled={deleting}>
-            {deleting ? "Deleting…" : "Delete account"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={exportAccountData} disabled={exporting}>
+              {exporting ? "Exporting…" : "Export account data"}
+            </Button>
+            <Button variant="destructive" onClick={deleteAccount} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete account"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

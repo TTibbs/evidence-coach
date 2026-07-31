@@ -34,6 +34,17 @@ export const PLAN_CONFIG = {
     jobMatching: true,
     mockInterviews: true,
   },
+  "interview-pass": {
+    maxExperiences: null,
+    maxEvidenceCards: null,
+    maxCvImportsPerMonth: 1,
+    maxJobTargets: 1,
+    maxGenerationsPerMonth: 25,
+    maxPracticeAttemptsPerMonth: 25,
+    voicePractice: true,
+    jobMatching: true,
+    mockInterviews: true,
+  },
 } as const;
 
 export type PlanConfig = (typeof PLAN_CONFIG)[PlanId];

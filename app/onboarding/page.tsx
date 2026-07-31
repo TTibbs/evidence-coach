@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AiDisclosure } from "@/components/ai-disclosure";
 import { FileUpload } from "@/components/file-upload/file-upload";
 import { Button } from "@/components/ui/button";
+import { RETENTION_POLICY } from "@/lib/retention";
 import {
   Card,
   CardContent,
@@ -58,6 +59,9 @@ export default function OnboardingPage() {
         <p className="mt-2 text-stone-600">
           Upload a CV or add experience manually. Imported data creates experiences only —
           never confirmed evidence cards.
+        </p>
+        <p className="mt-2 text-sm text-stone-500">
+          {RETENTION_POLICY.cvFiles} {RETENTION_POLICY.extractedCvText}
         </p>
       </div>
 

@@ -1,0 +1,2 @@
+-- Rollback note: Postgres cannot safely remove enum values once added.
+-- Leave 'interview-pass' in public.plan_id on rollback.
