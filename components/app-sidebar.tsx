@@ -172,7 +172,7 @@ function NavMenuItem({
         aria-disabled={item.disabled}
       >
         <HugeiconsIcon icon={item.icon} strokeWidth={2} />
-        <span>
+        <span className="group-data-[collapsible=icon]:hidden">
           <span>{item.label}</span>
           {item.description && size === "lg" && (
             <span className="block truncate text-xs font-normal text-sidebar-foreground/60">
@@ -211,7 +211,7 @@ export function AppSidebar() {
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                 <HugeiconsIcon icon={FileVerifiedIcon} strokeWidth={2} />
               </div>
-              <span>
+              <span className="group-data-[collapsible=icon]:hidden">
                 <span className="block font-display text-base leading-none">
                   Evidence Coach
                 </span>
@@ -267,7 +267,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton onClick={signOut} tooltip="Sign out">
               <HugeiconsIcon icon={Logout03Icon} strokeWidth={2} />
-              <span>Sign out</span>
+              <span className="group-data-[collapsible=icon]:hidden">Sign out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
