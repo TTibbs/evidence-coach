@@ -18,6 +18,11 @@ import {
 import { AiDisclosure } from "@/components/ai-disclosure";
 
 type CardOption = { id: string; title: string };
+type JobTarget = {
+  id: string;
+  title: string;
+  company?: string | null;
+};
 type Session = {
   id: string;
   question: string;
@@ -29,25 +34,55 @@ type Session = {
 export default function PracticePage() {
   const router = useRouter();
   const [cards, setCards] = useState<CardOption[]>([]);
+  const [targets, setTargets] = useState<JobTarget[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [question, setQuestion] = useState("");
   const [evidenceCardId, setEvidenceCardId] = useState("");
+  const [jobTargetId, setJobTargetId] = useState("");
   const [mode, setMode] = useState<"text" | "voice">("text");
   const [creating, setCreating] = useState(false);
+  const [generatingQuestion, setGeneratingQuestion] = useState(false);
 
   useEffect(() => {
     async function load() {
-      const [cardsRes, sessionsRes] = await Promise.all([
+      const [cardsRes, sessionsRes, targetsRes] = await Promise.all([
         fetch("/api/evidence?status=confirmed"),
         fetch("/api/practice/sessions"),
+        fetch("/api/job-targets"),
       ]);
       const cardsData = await cardsRes.json();
       const sessionsData = await sessionsRes.json();
+      const targetsData = await targetsRes.json();
       setCards(cardsData.cards ?? []);
       setSessions(sessionsData.sessions ?? []);
+      setTargets(targetsData.jobTargets ?? []);
     }
     load();
   }, []);
+
+  async function generateQuestion() {
+    if (!evidenceCardId) {
+      toast.error("Select a confirmed evidence card first");
+      return;
+    }
+    setGeneratingQuestion(true);
+    const res = await fetch("/api/practice/question", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        evidenceCardId,
+        jobTargetId: jobTargetId || null,
+      }),
+    });
+    const data = await res.json();
+    setGeneratingQuestion(false);
+    if (!res.ok) {
+      toast.error(data.error || "Could not generate question");
+      return;
+    }
+    setQuestion(data.question);
+    toast.success("Question generated");
+  }
 
   async function startSession(e: React.FormEvent) {
     e.preventDefault();
@@ -59,6 +94,7 @@ export default function PracticePage() {
         question,
         mode,
         evidenceCardId: evidenceCardId || null,
+        jobTargetId: jobTargetId || null,
       }),
     });
     const data = await res.json();
@@ -100,6 +136,14 @@ export default function PracticePage() {
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="Tell me about a time you helped a new starter…"
               />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={generateQuestion}
+                disabled={generatingQuestion || !evidenceCardId}
+              >
+                {generatingQuestion ? "Generating…" : "Generate from evidence"}
+              </Button>
             </div>
             <div className="space-y-2">
               <Label htmlFor="card">Evidence card</Label>
@@ -115,6 +159,29 @@ export default function PracticePage() {
                   {cards.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="jobTarget">Job target</Label>
+              <Select
+                value={jobTargetId || null}
+                onValueChange={(value) => setJobTargetId(value ?? "")}
+                items={targets.map((t) => ({
+                  value: t.id,
+                  label: t.company ? `${t.title} — ${t.company}` : t.title,
+                }))}
+              >
+                <SelectTrigger id="jobTarget">
+                  <SelectValue placeholder="Optional role context" />
+                </SelectTrigger>
+                <SelectContent>
+                  {targets.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.title}
+                      {t.company ? ` — ${t.company}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -324,6 +324,10 @@ export const transcriptionSchema = z.object({
   transcript: z.string().min(1),
 });
 
+export const practiceQuestionSchema = z.object({
+  question: z.string().min(1),
+});
+
 export const jdAnalysisSchema = z.object({
   extractedSkills: z.array(z.string()),
   extractedCompetencies: z.array(z.string()),
