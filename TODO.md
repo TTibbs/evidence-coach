@@ -2,7 +2,7 @@
 
 Source of truth for current implementation status and recommended next work.
 
-Last updated: 2026-07-31
+Last updated: 2026-08-01
 
 ## Current Status
 
@@ -46,6 +46,13 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 - [x] CV and practice audio file proxy routes added.
 - [x] README updated with setup, AI provider, and manual workflow checks.
 - [x] Supabase local CLI state ignored in `.gitignore`.
+- [x] Authenticated app sidebar added with grouped navigation, mobile drawer, collapsed rail, and route-aware active states.
+- [x] Job target practice shortcut added so saved roles can preselect practice context.
+- [x] First Interview Prep Pack page added for saved job targets.
+- [x] Voice dictation added for guided evidence-card answers with transcript-only audio handling.
+- [x] Draft evidence-card enrichment flow added for missing details after guided interviews.
+- [x] Job description analysis schema normalization added for common Gemini output variants.
+- [x] Focused regression tests added for prep packs, job analysis normalization, voice dictation, and evidence-card enrichment.
 
 ## Next Verification Pass
 
@@ -85,12 +92,17 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 - [x] Experience list and detail screens.
 - [x] Evidence card list and detail screens.
 - [x] Guided evidence interview flow.
+- [x] Guided evidence interview answers support voice-to-text dictation.
+- [x] Draft evidence cards can be enriched with missing details before confirmation.
 - [x] Evidence filtering component.
 - [ ] Confirm extracted CV fields cover all PRD requirements: name, roles, employers, dates, responsibilities, education, projects, skills, volunteering.
-- [ ] Add clearer evidence card review/confirmation states if any AI draft can currently be stored ambiguously.
+- [x] Add clearer evidence card review/confirmation states if any AI draft can currently be stored ambiguously.
 - [ ] Add gap detection for missing evidence categories.
 - [ ] Add competency tag editing and filtering if not already fully wired.
 - [x] Ensure draft/unconfirmed evidence is never reused in generation.
+- [ ] Add lightweight coverage checks after evidence-card drafting to highlight likely missing responsibility, role, action, metric, or outcome details.
+- [ ] Add a “continue from this card” shortcut back into guided questions using the draft card as context.
+- [ ] Add a “split this experience into roles” helper for one employer with multiple roles or responsibility sets.
 
 ## Feature 2: CV And Answer Builder
 
@@ -110,6 +122,7 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 - [x] Practice setup and session screens.
 - [x] Text answer attempts.
 - [x] Voice transcription endpoint.
+- [x] Generic transcript-only dictation endpoint added for non-practice text fields.
 - [x] TTS question route.
 - [x] Feedback and comparison screens.
 - [x] Attempt storage APIs.
@@ -133,8 +146,9 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 ## Privacy, Safety, And Trust
 
 - [x] Add privacy copy for CV uploads, practice audio, AI processing, and data retention.
+- [x] Add privacy copy for transcript-only voice dictation audio.
 - [x] Add delete/export account data workflows.
-- [ ] Confirm the product never fabricates achievements, metrics, responsibilities, or outcomes.
+- [ ] Confirm the product never fabricates achievements, metrics, responsibilities, or outcomes across enrichment, generation, JD analysis, and practice flows.
 - [x] Add tests for confirmed metric filtering and unsupported metric rejection around generation routes.
 - [x] Add visible distinction between user-confirmed content and AI suggestions.
 - [ ] Add audit trail fields if needed for AI-generated drafts versus confirmed user edits.
@@ -147,6 +161,7 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 - [ ] Test with missing required env vars and confirm clear startup/runtime errors.
 - [ ] Test common file failures: unsupported CV type, too-large file, scanned PDF, empty DOCX.
 - [ ] Test browser support for recording and playback on desktop and mobile.
+- [ ] Test evidence-answer dictation end-to-end on desktop and mobile browsers.
 - [x] Add deployment notes for Vercel and Supabase.
 - [x] Add monitoring/logging plan for AI errors and upload/transcription failures.
 - [ ] Add basic analytics for PRD success metrics: activation, evidence cards created, generated outputs, practice attempts.
@@ -169,6 +184,17 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 - [ ] Replace generic entitlement toasts with plan-aware upgrade/paywall UI.
 - [ ] Paginate account data exports if large accounts can exceed single-query export limits.
 - [ ] Decide whether account exports should include signed file manifests or zipped CV/audio binaries.
+
+## Evidence Capture Flow Recommendations
+
+- [ ] Add post-draft flow checks that compare the source experience responsibilities against the draft card and ask the user if any major responsibility was missed.
+- [ ] Add a “what else did you do in this role?” checkpoint before completing a guided evidence interview, especially when the source experience has multiple responsibilities.
+- [ ] Add role-context chips for imported experiences where one employer contains multiple job titles, so users can scope a card to the right role before answering.
+- [ ] Add a non-AI review checklist on draft cards: situation, personal action, result, metric, role scope, skills, and source facts.
+- [ ] Add an optional AI “gap scan” on draft cards that suggests follow-up questions without editing the card automatically.
+- [ ] Add “duplicate as separate card” and “merge selected cards” tools later for users who intentionally create overlapping evidence.
+- [ ] Add inline source-fact highlighting so users can see which typed or dictated details support each card field.
+- [ ] Add a card completeness indicator that stays advisory and never blocks saving or confirmation.
 
 ## Post-MVP Ideas From PRD
 
