@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Evidence Coach
 
-## Getting Started
+Turn real experience into stronger CV evidence and interview answers.
 
-First, run the development server:
+## Stack
+
+- Next.js (App Router) + TypeScript + Tailwind + shadcn-style UI
+- Supabase (Auth, Postgres, Storage)
+- **Google Gemini** (`gemini-3.6-flash` via `@google/genai`) — active MVP AI provider
+- OpenAI — retained for future paid use; **disabled for users** during MVP
+- ElevenLabs (practice question TTS)
+
+## Setup
+
+1. Copy env file:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Create a Supabase project, set `DATABASE_URL` in `.env.local`, then apply migrations:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run db:status          # see applied vs pending
+npm run db:migrate:dry     # preview pending SQL (no changes)
+npm run db:migrate         # prompts y/N, then applies only pending migrations
+npm run db:rollback:dry    # preview rollback
+npm run db:rollback        # prompts y/N, rolls back the latest migration
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Migrations are tracked in `public.schema_migrations`, so re-running `db:migrate` skips already-applied files. Each forward file (`*.sql`) should have a matching `*.down.sql` for rollbacks.
 
-## Learn More
+Alternatively, use the Supabase CLI:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npx supabase link --project-ref YOUR_PROJECT_REF
+npx supabase db push
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Confirm storage buckets `cvs` and `practice-audio` exist.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. Fill `.env.local`:
+   - **Required for AI:** `GEMINI_API_KEY` (and optional `GEMINI_MODEL`, default `gemini-3.6-flash`)
+   - **Optional:** `OPENAI_API_KEY` (not required while OpenAI is disabled)
+   - Set `BETA_PLAN_OVERRIDE=prepare` for local testing of voice / JD matching entitlements
+   - Use `AI_PROVIDER=mock` for offline/local tests without live Gemini calls
 
-## Deploy on Vercel
+5. Install and run:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm install
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000](http://localhost:3000).
+
+## AI providers
+
+| Provider | MVP status | Notes |
+|----------|------------|--------|
+| Gemini | Active / free beta | Extraction, evidence, generation, JD match, feedback, voice STT |
+| OpenAI | Disabled | Code retained; factory + flags block all user requests |
+| Mock | Dev/tests | `AI_PROVIDER=mock` |
+
+Server enforcement: `getCareerAiProvider()` + `canUseProvider()` + `AI_OPENAI_*` flags. Client-supplied provider names are ignored. Gemini failures **never** fall back to OpenAI.
+
+### Privacy / free-tier note
+
+Gemini Developer API free-tier content may be used by Google to improve its products. Paid Gemini tiers have different data-use terms. Disclose this to beta users (see Settings / onboarding).
+
+### Manual AI workflow checks
+
+1. Upload CV → extraction uses Gemini
+2. Evidence interview → questions + draft card via Gemini
+3. Builder generate → Gemini
+4. Job target analyse → Gemini
+5. Practice text feedback → Gemini
+6. Practice voice → Gemini transcription (not Whisper)
+7. With OpenAI env unset and flags false, app still starts; no OpenAI network calls
+
+## Tests
+
+```bash
+npm test
+npm run lint
+npm run build
+```
+
+## Notes
+
+- AI outputs are validated with Zod before storage.
+- Draft evidence cards are never reused for generation until confirmed.
+- Product entitlements: `usage_events` + `PLAN_CONFIG`.
+- Provider telemetry: `ai_usage_events` + daily/monthly `AI_FREE_*_REQUEST_LIMIT`.
