@@ -10,7 +10,7 @@ const schema = z.object({
   sessionId: z.string().uuid(),
   answerText: z.string().min(1),
   audioPath: z.string().optional().nullable(),
-  durationSeconds: z.number().optional().nullable(),
+  durationSeconds: z.number().int().positive().optional().nullable(),
 });
 
 export async function POST(request: Request) {
@@ -32,11 +32,22 @@ export async function POST(request: Request) {
   const action =
     session.mode === "voice" ? "voice_transcription" : "practice_feedback";
 
+  let planConfig;
   try {
-    await assertWithinLimit(user!.id, action);
+    planConfig = await assertWithinLimit(user!.id, action);
   } catch (e) {
     if (e instanceof EntitlementError) return jsonError(e.message, 403);
     throw e;
+  }
+  if (
+    session.mode === "voice" &&
+    parsed.data.durationSeconds &&
+    parsed.data.durationSeconds > planConfig.maxVoiceRecordingSeconds
+  ) {
+    return jsonError(
+      `Voice recordings on your plan must be ${planConfig.maxVoiceRecordingSeconds} seconds or shorter`,
+      403,
+    );
   }
 
   let analysis;
@@ -90,7 +101,11 @@ export async function POST(request: Request) {
     user!.id,
     session.mode === "voice" ? "voice_transcription" : "practice_feedback",
     1,
-    { sessionId: session.id, attemptId: attempt.id },
+    {
+      sessionId: session.id,
+      attemptId: attempt.id,
+      durationSeconds: parsed.data.durationSeconds ?? null,
+    },
   );
 
   return NextResponse.json({ attempt }, { status: 201 });

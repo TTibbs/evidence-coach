@@ -114,7 +114,7 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 - [x] Feedback and comparison screens.
 - [x] Attempt storage APIs.
 - [ ] Verify microphone recording UX end-to-end in browser.
-- [ ] Add voice duration limits by plan.
+- [x] Add voice duration limits by plan.
 - [x] Add feedback categories from PRD if any are missing: relevance, ownership, specificity, structure, evidence, outcome, conciseness, delivery.
 - [x] Ensure feedback does not claim to assess emotion, honesty, personality, or employability.
 - [x] Add attempt history filtering and clearer comparison navigation.

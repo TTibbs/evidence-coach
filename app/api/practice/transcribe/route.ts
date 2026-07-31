@@ -19,8 +19,9 @@ export async function POST(request: Request) {
   const { user, supabase, response } = await requireUser();
   if (response) return response;
 
+  let planConfig;
   try {
-    await assertWithinLimit(user!.id, "voice_transcription");
+    planConfig = await assertWithinLimit(user!.id, "voice_transcription");
   } catch (e) {
     if (e instanceof EntitlementError) return jsonError(e.message, 403);
     throw e;
@@ -29,8 +30,28 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const file = form.get("audio");
   const sessionId = form.get("sessionId");
+  const durationSecondsValue = form.get("durationSeconds");
   if (!(file instanceof File)) return jsonError("Missing audio");
   if (typeof sessionId !== "string") return jsonError("Missing sessionId");
+  const durationSeconds =
+    typeof durationSecondsValue === "string"
+      ? Math.ceil(Number(durationSecondsValue))
+      : null;
+  if (
+    durationSeconds !== null &&
+    (!Number.isFinite(durationSeconds) || durationSeconds < 1)
+  ) {
+    return jsonError("Invalid recording duration");
+  }
+  if (
+    durationSeconds !== null &&
+    durationSeconds > planConfig.maxVoiceRecordingSeconds
+  ) {
+    return jsonError(
+      `Voice recordings on your plan must be ${planConfig.maxVoiceRecordingSeconds} seconds or shorter`,
+      403,
+    );
+  }
   if (file.size > MAX_AUDIO_BYTES) {
     return jsonError("Audio recording must be 25 MB or smaller");
   }
@@ -74,6 +95,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       transcript: result.transcript,
       audioPath: path,
+      durationSeconds,
     });
   } catch (err) {
     if (err instanceof AiProviderError) return aiJsonError(err);
