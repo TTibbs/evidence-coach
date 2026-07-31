@@ -94,6 +94,8 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 - [x] Guided evidence interview flow.
 - [x] Guided evidence interview answers support voice-to-text dictation.
 - [x] Draft evidence cards can be enriched with missing details before confirmation.
+- [x] Responsibility-scoped evidence-card starts added for experiences with multiple roles or duties.
+- [x] Guided evidence interviews add a final “what else did you do in this role?” checkpoint for multi-responsibility experiences.
 - [x] Evidence filtering component.
 - [ ] Confirm extracted CV fields cover all PRD requirements: name, roles, employers, dates, responsibilities, education, projects, skills, volunteering.
 - [x] Add clearer evidence card review/confirmation states if any AI draft can currently be stored ambiguously.
@@ -188,8 +190,8 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 ## Evidence Capture Flow Recommendations
 
 - [ ] Add post-draft flow checks that compare the source experience responsibilities against the draft card and ask the user if any major responsibility was missed.
-- [ ] Add a “what else did you do in this role?” checkpoint before completing a guided evidence interview, especially when the source experience has multiple responsibilities.
-- [ ] Add role-context chips for imported experiences where one employer contains multiple job titles, so users can scope a card to the right role before answering.
+- [x] Add a “what else did you do in this role?” checkpoint before completing a guided evidence interview, especially when the source experience has multiple responsibilities.
+- [x] Add role-context chips for imported experiences where one employer contains multiple job titles, so users can scope a card to the right role before answering.
 - [ ] Add a non-AI review checklist on draft cards: situation, personal action, result, metric, role scope, skills, and source facts.
 - [ ] Add an optional AI “gap scan” on draft cards that suggests follow-up questions without editing the card automatically.
 - [ ] Add “duplicate as separate card” and “merge selected cards” tools later for users who intentionally create overlapping evidence.

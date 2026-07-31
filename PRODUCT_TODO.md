@@ -2,7 +2,7 @@
 
 Source of truth for customer-winning improvements identified in `PRODUCT_AUDIT.md`.
 
-Last updated: 2026-07-31
+Last updated: 2026-08-01
 
 ## Role-Specific Preparation Loop
 
@@ -11,7 +11,23 @@ Last updated: 2026-07-31
 - [x] Add "Build evidence for this gap" actions from job target gaps.
 - [x] Add "Practise this job" from job target detail pages.
 - [x] Create a first Interview Prep Pack page for saved job targets.
+- [x] Add voice-to-text for guided evidence-card answers.
+- [x] Add draft evidence-card enrichment for missing details.
+- [x] Add responsibility-scoped evidence-card starts for multi-role experiences.
+- [x] Add a final “what else did you do in this role?” checkpoint before drafting cards from multi-responsibility experiences.
 - [ ] Show "facts used" beside generated CV/interview content.
+
+## Evidence Capture Flow
+
+- [x] Add transcript-only dictation to guided evidence interviews.
+- [x] Add “Add missing details” enrichment on draft evidence cards.
+- [x] Add responsibility/role-scope shortcuts from experience detail pages.
+- [x] Add a final coverage checkpoint before drafting evidence cards from experiences with multiple responsibilities.
+- [ ] Add post-draft coverage checks comparing source responsibilities with the drafted card.
+- [ ] Add a non-AI review checklist for draft cards.
+- [ ] Add optional AI gap scan that suggests follow-up questions without editing the card automatically.
+- [ ] Add inline source-fact highlighting for generated evidence fields.
+- [ ] Add duplicate-as-separate-card and merge-selected-cards tools for overlapping evidence later.
 
 ## Interview Prep Pack
 

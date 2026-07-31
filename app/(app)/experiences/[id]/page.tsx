@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourceCvPanel } from "@/components/source-cv-panel";
+import { evidenceInterviewHref } from "@/lib/evidence-interview-flow";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -43,17 +44,7 @@ export default async function ExperienceDetailPage({ params, searchParams }: Pro
           <h1 className="font-display text-3xl text-teal-950">{experience.title}</h1>
           <p className="text-stone-600">{experience.organisation}</p>
         </div>
-        <Button
-          render={
-            <Link
-              href={
-                focus
-                  ? `/evidence/interview/new?experienceId=${experience.id}&focus=${encodeURIComponent(focus)}`
-                  : `/evidence/interview/new?experienceId=${experience.id}`
-              }
-            />
-          }
-        >
+        <Button render={<Link href={evidenceInterviewHref(experience.id, focus)} />}>
           Create evidence card
         </Button>
       </div>
@@ -86,9 +77,25 @@ export default async function ExperienceDetailPage({ params, searchParams }: Pro
             <CardTitle>Responsibilities</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="list-disc space-y-1 pl-5 text-stone-700">
+            <p className="mb-3 text-sm text-stone-600">
+              Start a card from a specific responsibility when this experience
+              covers multiple roles or duties.
+            </p>
+            <ul className="space-y-2 text-stone-700">
               {experience.responsibilities.map((r: string) => (
-                <li key={r}>{r}</li>
+                <li
+                  key={r}
+                  className="flex flex-col gap-2 rounded-md border border-stone-200 px-3 py-2 sm:flex-row sm:items-start sm:justify-between"
+                >
+                  <span>{r}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    render={<Link href={evidenceInterviewHref(experience.id, r)} />}
+                  >
+                    Create card for this
+                  </Button>
+                </li>
               ))}
             </ul>
           </CardContent>

@@ -8,6 +8,10 @@ import {
   suggestEvidenceQuestions,
 } from "@/lib/ai/evidence";
 import { AiProviderError } from "@/lib/ai/errors";
+import {
+  ROLE_COVERAGE_CHECKPOINT,
+  shouldAskRoleCoverageCheckpoint,
+} from "@/lib/evidence-interview-flow";
 import { NextResponse } from "next/server";
 
 const startSchema = z.object({
@@ -98,6 +102,15 @@ export async function POST(request: Request) {
 
     if (!done) {
       // keep remaining planned questions
+    } else if (
+      shouldAskRoleCoverageCheckpoint({
+        questions,
+        currentIndex,
+        responsibilities: experience.responsibilities ?? [],
+      })
+    ) {
+      nextQuestions = [...questions, ROLE_COVERAGE_CHECKPOINT];
+      done = false;
     } else {
       const decision = await decideNextQuestion(
         {
