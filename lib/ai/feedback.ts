@@ -1,4 +1,6 @@
 import { withCareerAi } from "@/lib/ai/run";
+import { practiceFeedbackSchema } from "@/lib/ai/schemas";
+import { validateAiPayload } from "@/lib/ai/validated";
 
 export async function analysePracticeAnswer(
   params: {
@@ -9,8 +11,9 @@ export async function analysePracticeAnswer(
   },
   userId: string,
 ) {
-  return withCareerAi(
+  const result = await withCareerAi(
     { userId, operation: "practice_feedback" },
     (provider) => provider.analysePracticeAnswer(params),
   );
+  return validateAiPayload(practiceFeedbackSchema, result, "Practice feedback");
 }

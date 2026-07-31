@@ -1,4 +1,10 @@
 import { withCareerAi } from "@/lib/ai/run";
+import {
+  evidenceCardDraftSchema,
+  interviewQuestionsSchema,
+  nextQuestionSchema,
+} from "@/lib/ai/schemas";
+import { validateAiPayload } from "@/lib/ai/validated";
 import type { ExperienceInput } from "@/lib/ai/provider";
 
 export type { ExperienceInput };
@@ -7,9 +13,14 @@ export async function suggestEvidenceQuestions(
   experience: ExperienceInput,
   userId: string,
 ) {
-  return withCareerAi(
+  const result = await withCareerAi(
     { userId, operation: "evidence_questions" },
     (provider) => provider.suggestEvidenceQuestions({ experience }),
+  );
+  return validateAiPayload(
+    interviewQuestionsSchema,
+    result,
+    "Evidence questions",
   );
 }
 
@@ -22,10 +33,11 @@ export async function decideNextQuestion(
   },
   userId: string,
 ) {
-  return withCareerAi(
+  const result = await withCareerAi(
     { userId, operation: "evidence_questions" },
     (provider) => provider.decideNextQuestion(params),
   );
+  return validateAiPayload(nextQuestionSchema, result, "Next evidence question");
 }
 
 export async function draftEvidenceCard(
@@ -36,8 +48,9 @@ export async function draftEvidenceCard(
   },
   userId: string,
 ) {
-  return withCareerAi(
+  const result = await withCareerAi(
     { userId, operation: "evidence_card" },
     (provider) => provider.createEvidenceCard(params),
   );
+  return validateAiPayload(evidenceCardDraftSchema, result, "Evidence card");
 }

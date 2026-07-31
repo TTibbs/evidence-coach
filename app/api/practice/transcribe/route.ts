@@ -2,6 +2,8 @@ import { requireUser, jsonError, aiJsonError } from "@/lib/api/auth";
 import { assertWithinLimit, EntitlementError } from "@/lib/entitlements/check";
 import { AiProviderError } from "@/lib/ai/errors";
 import { withCareerAi } from "@/lib/ai/run";
+import { transcriptionSchema } from "@/lib/ai/schemas";
+import { validateAiPayload } from "@/lib/ai/validated";
 import { NextResponse } from "next/server";
 
 const MAX_AUDIO_BYTES = 25_000_000;
@@ -92,8 +94,14 @@ export async function POST(request: Request) {
         }),
     );
 
+    const transcription = validateAiPayload(
+      transcriptionSchema,
+      result,
+      "Voice transcription",
+    );
+
     return NextResponse.json({
-      transcript: result.transcript,
+      transcript: transcription.transcript,
       audioPath: path,
       durationSeconds,
     });

@@ -60,7 +60,7 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 - [x] Test the app with `AI_PROVIDER=mock` for offline local verification.
 - [ ] Test the app with Gemini env vars configured and OpenAI env vars absent.
 - [ ] Confirm Gemini failures do not fall back to OpenAI.
-- [ ] Confirm all AI-generated payloads are schema-validated before persistence.
+- [x] Confirm all AI-generated payloads are schema-validated before persistence.
 
 ## MVP Completion Todos
 

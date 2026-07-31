@@ -1,4 +1,6 @@
 import { withCareerAi } from "@/lib/ai/run";
+import { jdAnalysisSchema } from "@/lib/ai/schemas";
+import { validateAiPayload } from "@/lib/ai/validated";
 
 export async function analyseJobDescription(
   params: {
@@ -8,8 +10,9 @@ export async function analyseJobDescription(
   },
   userId: string,
 ) {
-  return withCareerAi(
+  const result = await withCareerAi(
     { userId, operation: "job_analysis" },
     (provider) => provider.analyseJobDescription(params),
   );
+  return validateAiPayload(jdAnalysisSchema, result, "Job description analysis");
 }

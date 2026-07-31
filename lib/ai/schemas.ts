@@ -320,6 +320,10 @@ export const improvedResponsibilitiesSchema = z.object({
   responsibilities: z.array(z.string()).default([]),
 });
 
+export const transcriptionSchema = z.object({
+  transcript: z.string().min(1),
+});
+
 export const jdAnalysisSchema = z.object({
   extractedSkills: z.array(z.string()),
   extractedCompetencies: z.array(z.string()),
