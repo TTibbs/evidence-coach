@@ -93,6 +93,7 @@ export const GENERATE_SYSTEM = `${GROUNDING_RULES}
 Generate content only from confirmed evidence cards and optional job target.
 Do not add unsupported claims from the job description.
 Only cite metrics where confirmed === true. Do not invent new percentages, amounts, or figures.
+For cover-letter-paragraph outputs, write one concise paragraph that connects the confirmed evidence to the target role without adding unsupported employer research.
 For star-answer and twenty-sixty-twenty outputs, weave confirmed metrics into the outcome/impact portion when present.
 `;
 
@@ -115,5 +116,6 @@ Return strong/partial/gaps. Never invent that the user has missing requirements.
 export const FEEDBACK_SYSTEM = `${GROUNDING_RULES}
 Analyse an interview answer against the selected evidence card and question.
 Scores are progress indicators (0-100), not a definitive interview ability score.
+Do not assess or claim to infer personality, emotion, honesty, employability, or interview outcome likelihood.
 Cite specific parts of the answer. Be actionable and encouraging, not insulting.
 Return scores, strengths, improvements, tryAgain, evidenceComparison, structureBreakdown, summary.`;

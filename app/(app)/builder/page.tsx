@@ -30,10 +30,19 @@ type JobTarget = {
   company?: string | null;
 };
 
+type GeneratedItem = {
+  id: string;
+  type: GeneratedContentType;
+  content: string;
+  user_edited_content?: string | null;
+  created_at: string;
+};
+
 const OUTPUT_TYPES: { value: GeneratedContentType; label: string }[] = [
   { value: "cv-bullet", label: "CV bullet" },
   { value: "role-summary", label: "Role summary" },
   { value: "profile", label: "Profile" },
+  { value: "cover-letter-paragraph", label: "Cover-letter paragraph" },
   { value: "star-answer", label: "STAR answer" },
   { value: "twenty-sixty-twenty", label: "20/60/20 answer" },
   { value: "application-answer", label: "Application answer" },
@@ -52,22 +61,51 @@ export default function BuilderPage() {
     content: string;
     user_edited_content?: string | null;
   } | null>(null);
+  const [history, setHistory] = useState<GeneratedItem[]>([]);
   const [edited, setEdited] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      const [cardsRes, targetsRes] = await Promise.all([
-        fetch("/api/evidence?status=confirmed"),
-        fetch("/api/job-targets"),
-      ]);
-      const cardsData = await cardsRes.json();
-      const targetsData = await targetsRes.json();
-      setCards(cardsData.cards ?? []);
-      setTargets(targetsData.jobTargets ?? []);
+      try {
+        const [cardsRes, targetsRes, generatedRes] = await Promise.all([
+          fetch("/api/evidence?status=confirmed"),
+          fetch("/api/job-targets"),
+          fetch("/api/generate"),
+        ]);
+        const cardsData = await cardsRes.json();
+        const targetsData = await targetsRes.json();
+        const generatedData = await generatedRes.json();
+        if (!cardsRes.ok || !targetsRes.ok || !generatedRes.ok) {
+          throw new Error(
+            cardsData.error ||
+              targetsData.error ||
+              generatedData.error ||
+              "Could not load builder data",
+          );
+        }
+        setCards(cardsData.cards ?? []);
+        setTargets(targetsData.jobTargets ?? []);
+        setHistory(generatedData.items ?? []);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not load builder data";
+        setLoadError(message);
+        toast.error(message);
+      } finally {
+        setPageLoading(false);
+      }
     }
     load();
   }, []);
+
+  async function refreshHistory() {
+    const res = await fetch("/api/generate");
+    if (!res.ok) return;
+    const data = await res.json();
+    setHistory(data.items ?? []);
+  }
 
   function toggleCard(id: string) {
     setSelected((prev) =>
@@ -99,6 +137,7 @@ export default function BuilderPage() {
     }
     setResult(data.content);
     setEdited(data.content.content);
+    await refreshHistory();
     toast.success("Content generated");
   }
 
@@ -115,7 +154,35 @@ export default function BuilderPage() {
       return;
     }
     setResult(data.content);
+    await refreshHistory();
     toast.success("Edits saved");
+  }
+
+  async function copyOutput() {
+    if (!result) return;
+    const text = edited.trim() || result.user_edited_content || result.content;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.append(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
+      toast.success("Copied to clipboard");
+    } catch {
+      toast.error("Could not copy content");
+    }
+  }
+
+  function loadHistoryItem(item: GeneratedItem) {
+    setResult(item);
+    setEdited(item.user_edited_content || item.content);
   }
 
   return (
@@ -129,6 +196,11 @@ export default function BuilderPage() {
           <AiDisclosure compact />
         </div>
       </div>
+      {loadError && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {loadError}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -214,11 +286,14 @@ export default function BuilderPage() {
                   </li>
                 ))}
               </ul>
-              {cards.length === 0 && (
-                <p className="text-sm text-stone-500">
-                  Confirm at least one evidence card first.
-                </p>
-              )}
+                {pageLoading && (
+                  <p className="text-sm text-stone-500">Loading confirmed cards…</p>
+                )}
+                {!pageLoading && cards.length === 0 && (
+                  <p className="text-sm text-stone-500">
+                    Confirm at least one evidence card first.
+                  </p>
+                )}
             </div>
             <Button onClick={generate} disabled={loading}>
               {loading ? "Generating…" : "Generate"}
@@ -251,13 +326,43 @@ export default function BuilderPage() {
                     onChange={(e) => setEdited(e.target.value)}
                   />
                 </div>
-                <Button variant="secondary" onClick={saveEdits}>
-                  Save edits
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={saveEdits}>
+                    Save edits
+                  </Button>
+                  <Button variant="outline" onClick={copyOutput}>
+                    Copy
+                  </Button>
+                </div>
               </>
             ) : (
               <p className="text-stone-500">Generated content will appear here.</p>
             )}
+            <div className="border-t border-stone-200 pt-4">
+              <p className="mb-2 text-sm font-medium text-stone-700">Recent outputs</p>
+              {history.length > 0 ? (
+                <ul className="space-y-2">
+                  {history.slice(0, 5).map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-center justify-between gap-3 rounded-md border border-stone-200 px-3 py-2 text-sm"
+                    >
+                      <span>
+                        <span className="font-medium">{item.type}</span>
+                        <span className="ml-2 text-stone-500">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </span>
+                      </span>
+                      <Button size="sm" variant="outline" onClick={() => loadHistoryItem(item)}>
+                        Open
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-stone-500">No generated outputs yet.</p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

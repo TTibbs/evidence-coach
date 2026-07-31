@@ -11,6 +11,7 @@ const schema = z.object({
     "cv-bullet",
     "role-summary",
     "profile",
+    "cover-letter-paragraph",
     "star-answer",
     "twenty-sixty-twenty",
     "application-answer",

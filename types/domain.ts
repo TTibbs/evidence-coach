@@ -7,7 +7,7 @@ export type ExperienceType =
   | "certificate"
   | "other";
 
-export type PlanId = "free" | "prepare" | "intensive";
+export type PlanId = "free" | "prepare" | "intensive" | "interview-pass";
 
 export type ConfidenceStatus = "draft" | "confirmed";
 
@@ -15,6 +15,7 @@ export type GeneratedContentType =
   | "cv-bullet"
   | "role-summary"
   | "profile"
+  | "cover-letter-paragraph"
   | "star-answer"
   | "twenty-sixty-twenty"
   | "application-answer"
@@ -26,6 +27,7 @@ export type UsageEventType =
   | "job_analysis"
   | "text_practice"
   | "voice_transcription"
+  | "tts"
   | "practice_feedback"
   | "mock_interview";
 
