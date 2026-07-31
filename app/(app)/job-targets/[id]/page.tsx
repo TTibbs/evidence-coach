@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type JobTarget = {
   id: string;
@@ -78,6 +79,8 @@ export default function JobTargetDetailPage() {
 
   if (!target) return <p className="text-stone-600">Loading…</p>;
 
+  const evidenceGaps = target.match_summary?.gaps ?? [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -111,31 +114,70 @@ export default function JobTargetDetailPage() {
       </Card>
 
       {target.match_summary && (
-        <div className="grid gap-4 md:grid-cols-3">
-          {(
-            [
-              ["strong", "Strong evidence", "success"],
-              ["partial", "Partial evidence", "warning"],
-              ["gaps", "Gaps", "outline"],
-            ] as const
-          ).map(([key, label, variant]) => (
-            <Card key={key}>
-              <CardHeader>
-                <CardTitle className="text-base">{label}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-1">
-                {(target.match_summary?.[key] ?? []).map((item) => (
-                  <Badge key={item} variant={variant}>
-                    {item}
-                  </Badge>
-                ))}
-                {(target.match_summary?.[key] ?? []).length === 0 && (
-                  <p className="text-sm text-stone-500">None listed</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <section className="space-y-4">
+          {evidenceGaps.length > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-amber-950">
+                    Evidence gaps found
+                  </p>
+                  <p className="mt-1 text-sm text-amber-900">
+                    This job description asks for evidence you have not covered yet:
+                    {" "}
+                    {evidenceGaps.slice(0, 4).join(", ")}
+                    {evidenceGaps.length > 4 ? "…" : ""}
+                  </p>
+                </div>
+                <Button variant="outline" render={<Link href="/experiences" />}>
+                  Add evidence
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {(
+              [
+                [
+                  "strong",
+                  "Strong evidence",
+                  "success",
+                  "Ready to reuse in tailored CV bullets or practice answers.",
+                ],
+                [
+                  "partial",
+                  "Partial evidence",
+                  "warning",
+                  "Worth strengthening before relying on it for this role.",
+                ],
+                [
+                  "gaps",
+                  "Gaps",
+                  "outline",
+                  "Add or confirm evidence before making strong claims here.",
+                ],
+              ] as const
+            ).map(([key, label, variant, description]) => (
+              <Card key={key}>
+                <CardHeader>
+                  <CardTitle className="text-base">{label}</CardTitle>
+                  <CardDescription>{description}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-1">
+                  {(target.match_summary?.[key] ?? []).map((item) => (
+                    <Badge key={item} variant={variant}>
+                      {item}
+                    </Badge>
+                  ))}
+                  {(target.match_summary?.[key] ?? []).length === 0 && (
+                    <p className="text-sm text-stone-500">None listed</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
       )}
 
       {(target.extracted_skills?.length ?? 0) > 0 && (

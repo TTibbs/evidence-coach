@@ -103,7 +103,7 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 - [x] Add generated answer structure options if incomplete: 20/60/20, STAR, concise.
 - [ ] Add edit-revision history for generated outputs.
 - [x] Add export/copy affordances for generated outputs.
-- [ ] Add clearer warnings where job description matching finds evidence gaps.
+- [x] Add clearer warnings where job description matching finds evidence gaps.
 
 ## Feature 3: Interview Practice And Feedback
 
