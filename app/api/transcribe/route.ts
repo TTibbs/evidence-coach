@@ -1,5 +1,6 @@
 import { requireUser, jsonError, aiJsonError } from "@/lib/api/auth";
 import { assertWithinLimit, EntitlementError } from "@/lib/entitlements/check";
+import { recordUsage } from "@/lib/entitlements/record";
 import { AiProviderError } from "@/lib/ai/errors";
 import { withCareerAi } from "@/lib/ai/run";
 import { transcriptionSchema } from "@/lib/ai/schemas";
@@ -8,7 +9,7 @@ import { validateAudioUpload } from "@/lib/audio-upload";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
-  const { user, supabase, response } = await requireUser();
+  const { user, response } = await requireUser();
   if (response) return response;
 
   let planConfig;
@@ -21,10 +22,8 @@ export async function POST(request: Request) {
 
   const form = await request.formData();
   const file = form.get("audio");
-  const sessionId = form.get("sessionId");
   const durationSecondsValue = form.get("durationSeconds");
   if (!(file instanceof File)) return jsonError("Missing audio");
-  if (typeof sessionId !== "string") return jsonError("Missing sessionId");
 
   const validation = validateAudioUpload(
     file,
@@ -35,26 +34,7 @@ export async function POST(request: Request) {
     return jsonError(validation.message, validation.status);
   }
 
-  const { data: session } = await supabase
-    .from("practice_sessions")
-    .select("id")
-    .eq("id", sessionId)
-    .eq("user_id", user!.id)
-    .single();
-
-  if (!session) return jsonError("Session not found", 404);
-
   const buffer = Buffer.from(await file.arrayBuffer());
-  const path = `${user!.id}/${sessionId}/${crypto.randomUUID()}.webm`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("practice-audio")
-    .upload(path, buffer, {
-      contentType: validation.mimeType,
-      upsert: false,
-    });
-
-  if (uploadError) return jsonError(uploadError.message, 500);
 
   try {
     const result = await withCareerAi(
@@ -63,7 +43,7 @@ export async function POST(request: Request) {
         provider.transcribeAudio({
           audio: buffer,
           mimeType: validation.mimeType,
-          filename: "answer.webm",
+          filename: "dictation.webm",
         }),
     );
 
@@ -72,10 +52,12 @@ export async function POST(request: Request) {
       result,
       "Voice transcription",
     );
+    await recordUsage(user!.id, "voice_transcription", 1, {
+      source: "dictation",
+    });
 
     return NextResponse.json({
       transcript: transcription.transcript,
-      audioPath: path,
       durationSeconds: validation.durationSeconds,
     });
   } catch (err) {

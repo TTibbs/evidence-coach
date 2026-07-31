@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { VoiceDictationControl } from "@/components/voice-dictation-control";
+import { mergeTranscript } from "@/lib/transcript-text";
 
 function InterviewInner() {
   const searchParams = useSearchParams();
@@ -109,6 +111,11 @@ function InterviewInner() {
           onChange={(e) => setAnswer(e.target.value)}
           placeholder="Describe what you personally did…"
           aria-label="Your answer"
+        />
+        <VoiceDictationControl
+          onTranscript={(transcript) =>
+            setAnswer((current) => mergeTranscript(current, transcript))
+          }
         />
         <div className="flex gap-2">
           <Button onClick={submitAnswer} disabled={submitting || !answer.trim()}>

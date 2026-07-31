@@ -199,7 +199,7 @@ export default function SettingsPage() {
           <CardTitle>Data retention</CardTitle>
           <CardDescription>
             Uploaded files and recordings are stored under your user ID.
-            {` ${RETENTION_POLICY.practiceAudio} ${RETENTION_POLICY.practiceTranscripts}`}
+            {` ${RETENTION_POLICY.practiceAudio} ${RETENTION_POLICY.practiceTranscripts} ${RETENTION_POLICY.dictationAudio}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
