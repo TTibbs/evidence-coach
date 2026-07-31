@@ -82,12 +82,18 @@ export default function JobTargetDetailPage() {
   const evidenceGaps = target.match_summary?.gaps ?? [];
   const gapFocusHref = (gap: string) =>
     `/experiences?focus=${encodeURIComponent(gap)}`;
+  const practiseHref = `/practice?jobTargetId=${encodeURIComponent(target.id)}`;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-3xl text-teal-950">{target.title}</h1>
-        <p className="text-stone-600">{target.company}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="font-display text-3xl text-teal-950">{target.title}</h1>
+          <p className="text-stone-600">{target.company}</p>
+        </div>
+        <Button render={<Link href={practiseHref} />}>
+          Practise this job
+        </Button>
       </div>
 
       <Card>

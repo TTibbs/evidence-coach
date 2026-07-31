@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,8 +31,9 @@ type Session = {
   evidence_cards?: { title?: string } | null;
 };
 
-export default function PracticePage() {
+function PracticePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [cards, setCards] = useState<CardOption[]>([]);
   const [targets, setTargets] = useState<JobTarget[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -42,6 +43,11 @@ export default function PracticePage() {
   const [mode, setMode] = useState<"text" | "voice">("text");
   const [creating, setCreating] = useState(false);
   const [generatingQuestion, setGeneratingQuestion] = useState(false);
+  const requestedJobTargetId = searchParams.get("jobTargetId") ?? "";
+  const selectedTarget = useMemo(
+    () => targets.find((target) => target.id === jobTargetId),
+    [jobTargetId, targets],
+  );
 
   useEffect(() => {
     async function load() {
@@ -55,10 +61,17 @@ export default function PracticePage() {
       const targetsData = await targetsRes.json();
       setCards(cardsData.cards ?? []);
       setSessions(sessionsData.sessions ?? []);
-      setTargets(targetsData.jobTargets ?? []);
+      const loadedTargets = (targetsData.jobTargets ?? []) as JobTarget[];
+      setTargets(loadedTargets);
+      if (
+        requestedJobTargetId &&
+        loadedTargets.some((target) => target.id === requestedJobTargetId)
+      ) {
+        setJobTargetId(requestedJobTargetId);
+      }
     }
     load();
-  }, []);
+  }, [requestedJobTargetId]);
 
   async function generateQuestion() {
     if (!evidenceCardId) {
@@ -186,6 +199,13 @@ export default function PracticePage() {
                   ))}
                 </SelectContent>
               </Select>
+              {selectedTarget && (
+                <p className="rounded-md border border-teal-100 bg-teal-50 px-3 py-2 text-sm text-teal-950">
+                  Practising for {selectedTarget.title}
+                  {selectedTarget.company ? ` at ${selectedTarget.company}` : ""}.
+                  Generate a question from a confirmed evidence card to keep the answer grounded.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Mode</Label>
@@ -236,5 +256,17 @@ export default function PracticePage() {
         </ul>
       </section>
     </div>
+  );
+}
+
+function PracticePageFallback() {
+  return <p className="text-stone-600">Loading practice setup…</p>;
+}
+
+export default function PracticePage() {
+  return (
+    <Suspense fallback={<PracticePageFallback />}>
+      <PracticePageContent />
+    </Suspense>
   );
 }

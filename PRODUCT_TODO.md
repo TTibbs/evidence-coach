@@ -9,7 +9,7 @@ Last updated: 2026-07-31
 - [x] Document product audit findings and killer feature bet.
 - [x] Generate practice questions from selected evidence cards and job targets.
 - [x] Add "Build evidence for this gap" actions from job target gaps.
-- [ ] Add "Practise this job" from job target detail pages.
+- [x] Add "Practise this job" from job target detail pages.
 - [ ] Create a first Interview Prep Pack page for saved job targets.
 - [ ] Show "facts used" beside generated CV/interview content.
 
