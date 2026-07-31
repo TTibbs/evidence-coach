@@ -168,6 +168,7 @@ function NavMenuItem({
         isActive={active}
         size={size}
         tooltip={item.label}
+        className="group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center"
         aria-current={active ? "page" : undefined}
         aria-disabled={item.disabled}
       >
@@ -207,6 +208,7 @@ export function AppSidebar() {
               size="lg"
               tooltip="Evidence Coach"
               isActive={pathname === "/dashboard"}
+              className="group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center"
             >
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                 <HugeiconsIcon icon={FileVerifiedIcon} strokeWidth={2} />
@@ -265,7 +267,11 @@ export function AppSidebar() {
         <SidebarSeparator />
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={signOut} tooltip="Sign out">
+            <SidebarMenuButton
+              onClick={signOut}
+              tooltip="Sign out"
+              className="group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center"
+            >
               <HugeiconsIcon icon={Logout03Icon} strokeWidth={2} />
               <span className="group-data-[collapsible=icon]:hidden">Sign out</span>
             </SidebarMenuButton>
