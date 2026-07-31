@@ -1,0 +1,89 @@
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { ExperienceRow } from "@/components/experience-row";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+export default async function ExperiencesPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: experiences } = await supabase
+    .from("experiences")
+    .select("*, evidence_cards(count)")
+    .eq("user_id", user!.id)
+    .order("created_at", { ascending: false });
+
+  const grouped = (experiences ?? []).reduce<Record<string, typeof experiences>>(
+    (acc, exp) => {
+      const key = exp.type;
+      acc[key] = acc[key] ?? [];
+      acc[key]!.push(exp);
+      return acc;
+    },
+    {},
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl text-teal-950">Experiences</h1>
+          <p className="mt-1 text-stone-600">
+            Jobs, projects, and other source entries for your evidence bank.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" render={<Link href="/onboarding" />}>
+            Upload CV
+          </Button>
+          <Button render={<Link href="/experiences/new" />}>
+            Add manually
+          </Button>
+        </div>
+      </div>
+
+      {(!experiences || experiences.length === 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>No experiences yet</CardTitle>
+            <CardDescription>
+              Upload a CV or add a role manually to start building evidence cards.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button render={<Link href="/onboarding" />}>
+              Get started
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {Object.entries(grouped).map(([type, items]) => (
+        <section key={type} className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
+            {type}
+          </h2>
+          <ul className="space-y-2">
+            {items?.map((exp) => {
+              const count = Array.isArray(exp.evidence_cards)
+                ? (exp.evidence_cards[0] as { count?: number })?.count ?? 0
+                : 0;
+              return (
+                <ExperienceRow
+                  key={exp.id}
+                  id={exp.id}
+                  title={exp.title}
+                  organisation={exp.organisation}
+                  evidenceCount={count}
+                />
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
