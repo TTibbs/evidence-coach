@@ -31,11 +31,22 @@ export default function JobTargetsPage() {
   const [company, setCompany] = useState("");
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function load() {
+    setLoading(true);
+    setLoadError(null);
     const res = await fetch("/api/job-targets");
     const data = await res.json();
-    if (res.ok) setTargets(data.jobTargets ?? []);
+    setLoading(false);
+    if (res.ok) {
+      setTargets(data.jobTargets ?? []);
+      return;
+    }
+    const message = data.error || "Could not load job targets";
+    setLoadError(message);
+    toast.error(message);
   }
 
   useEffect(() => {
@@ -119,19 +130,32 @@ export default function JobTargetsPage() {
         </CardContent>
       </Card>
 
-      <ul className="space-y-2">
-        {targets.map((t) => (
-          <li key={t.id}>
-            <Link
-              href={`/job-targets/${t.id}`}
-              className="block rounded-lg border border-stone-200 bg-white px-4 py-3 hover:border-teal-300"
-            >
-              <p className="font-medium">{t.title}</p>
-              <p className="text-sm text-stone-500">{t.company || "No company"}</p>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <div className="space-y-2">
+        {loading && <p className="text-sm text-stone-500">Loading job targets…</p>}
+        {loadError && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {loadError}
+          </div>
+        )}
+        {!loading && !loadError && targets.length === 0 && (
+          <p className="rounded-md border border-stone-200 bg-white px-4 py-3 text-sm text-stone-500">
+            No job targets yet.
+          </p>
+        )}
+        <ul className="space-y-2">
+          {targets.map((t) => (
+            <li key={t.id}>
+              <Link
+                href={`/job-targets/${t.id}`}
+                className="block rounded-lg border border-stone-200 bg-white px-4 py-3 hover:border-teal-300"
+              >
+                <p className="font-medium">{t.title}</p>
+                <p className="text-sm text-stone-500">{t.company || "No company"}</p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

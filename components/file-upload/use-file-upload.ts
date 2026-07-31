@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 export type UploadStatus = "idle" | "uploading" | "success" | "error";
 
@@ -63,6 +63,7 @@ export function useFileUpload({
   const [files, setFiles] = useState<FileState[]>([]);
   const queueRef = useRef<FileState[]>([]);
   const activeUploads = useRef(0);
+  const processQueueRef = useRef<() => void>(() => {});
 
   const processQueue = useCallback(() => {
     if (!onUpload) return;
@@ -111,7 +112,7 @@ export function useFileUpload({
         })
         .finally(() => {
           activeUploads.current--;
-          processQueue();
+          processQueueRef.current();
         });
 
       setFiles((prev) =>
@@ -119,6 +120,10 @@ export function useFileUpload({
       );
     }
   }, [onUpload, maxConcurrentUploads]);
+
+  useEffect(() => {
+    processQueueRef.current = processQueue;
+  }, [processQueue]);
 
   const addFiles = useCallback(
     (fileList: FileList | null) => {
