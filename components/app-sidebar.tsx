@@ -87,6 +87,13 @@ const navGroups: NavGroup[] = [
         match: "prefix",
       },
       {
+        href: "/cv",
+        label: "CVs",
+        icon: FileEditIcon,
+        description: "Uploads and extracted text",
+        match: "prefix",
+      },
+      {
         href: "/evidence",
         label: "Evidence Bank",
         icon: FileVerifiedIcon,
