@@ -104,18 +104,18 @@ export function ExperiencesList({ experiences, focus }: ExperiencesListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2">
         <p className="text-sm text-stone-600">
           {selecting
             ? `${selectedIds.length} selected`
             : `${experiences.length} saved experience${experiences.length === 1 ? "" : "s"}`}
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-1">
           {selecting ? (
             <>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() =>
                   setSelectedIds(
@@ -194,7 +194,7 @@ export function ExperiencesList({ experiences, focus }: ExperiencesListProps) {
           ) : (
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => setSelecting(true)}
             >
