@@ -198,6 +198,14 @@ Recent commits grouped the work into product-direction docs, app foundation, Sup
 - [ ] Add inline source-fact highlighting so users can see which typed or dictated details support each card field.
 - [ ] Add a card completeness indicator that stays advisory and never blocks saving or confirmation.
 
+## CV Import Flow Recommendations
+
+- [x] Recognise "Technical Experience" as an employment-style section heading.
+- [x] Split semicolon-compressed "Additional Experience" role lists into separate review entries when title, organisation, and dates are clear.
+- [ ] Preserve skill categories such as Languages, Frontend, Backend, Data, Testing & Tools, and Practices for better matching later.
+- [ ] Add a review warning when imported project entries have no dates, so users can decide whether to add timing context.
+- [ ] Add a low-confidence import state when a section yields only one broad catch-all entry from several apparent roles.
+
 ## Post-MVP Ideas From PRD
 
 - [ ] Browser extension for job descriptions.

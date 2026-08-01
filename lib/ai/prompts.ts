@@ -27,6 +27,8 @@ Role body text → responsibilities[] (required when present under a role):
 - Split multi-duty prose into separate responsibility strings (by sentence or clear duty clauses).
   Example: a paragraph about forklifts AND machine minding → two (or more) responsibility items.
 - Keep wording close to the CV; do not invent duties that are not written there.
+- If an "Additional Experience" / "Other Experience" line contains multiple semicolon-separated
+  roles with title, organisation, and dates, extract each role as its own employment entry.
 
 When lines like [SECTION:employment] or [SECTION:project] appear, treat them as authoritative
 section type hints for the content that follows until the next [SECTION:…] marker.

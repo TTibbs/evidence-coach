@@ -20,6 +20,7 @@ describe("classifyCvSectionHeading", () => {
     ["Technical / Freelance Experience", "freelance"],
     ["Freelance Experience", "freelance"],
     ["Consulting", "freelance"],
+    ["Technical Experience", "employment"],
     ["Work Experience", "employment"],
     ["Other Work Experience", "employment"],
     ["Additional Employment", "employment"],

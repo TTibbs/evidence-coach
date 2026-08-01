@@ -42,7 +42,7 @@ const SECTION_RULES: SectionRule[] = [
   {
     kind: "employment",
     pattern:
-      /^((other|additional|relevant|professional|work|employment)\s+)+(work\s+)?(experience|employment|history|roles?)?$|^(work\s+experience|employment(\s+history)?|career\s+history|professional\s+experience)$/i,
+      /^((other|additional|relevant|professional|technical|work|employment)\s+)+(work\s+)?(experience|employment|history|roles?)?$|^(work\s+experience|employment(\s+history)?|career\s+history|professional\s+experience)$/i,
   },
   {
     kind: "education_and_certificate",

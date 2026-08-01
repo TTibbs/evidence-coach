@@ -29,6 +29,14 @@ Last updated: 2026-08-01
 - [ ] Add inline source-fact highlighting for generated evidence fields.
 - [ ] Add duplicate-as-separate-card and merge-selected-cards tools for overlapping evidence later.
 
+## CV Import Flow
+
+- [x] Recognise "Technical Experience" as an employment-style section heading.
+- [x] Split semicolon-compressed "Additional Experience" role lists into separate review entries when title, organisation, and dates are clear.
+- [ ] Preserve skill categories for better matching and gap analysis.
+- [ ] Add review warnings for imported projects without dates.
+- [ ] Add a low-confidence import state for broad catch-all entries that may hide several roles.
+
 ## Interview Prep Pack
 
 - [x] Show a requirements matrix from the job description.

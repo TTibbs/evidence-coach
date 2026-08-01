@@ -1,6 +1,7 @@
 import { withCareerAi } from "@/lib/ai/run";
 import { cvExtractionSchema } from "@/lib/ai/schemas";
 import { validateAiPayload } from "@/lib/ai/validated";
+import { expandCompressedAdditionalExperienceEntries } from "@/lib/cv/additional-experience";
 import { normalizeExtractedResponsibilities } from "@/lib/cv/responsibilities";
 import {
   annotateCvSections,
@@ -17,7 +18,9 @@ export async function extractCvFromText(cvText: string, userId: string) {
   const parsed = validateAiPayload(cvExtractionSchema, result, "CV extraction");
 
   const experiences = normalizeExtractedResponsibilities(
-    filterExperiencesDroppingSectionHeadings(parsed.experiences),
+    filterExperiencesDroppingSectionHeadings(
+      expandCompressedAdditionalExperienceEntries(parsed.experiences),
+    ),
   );
 
   return {
