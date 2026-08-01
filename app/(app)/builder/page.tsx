@@ -22,6 +22,7 @@ type CardOption = {
   id: string;
   title: string;
   summary: string;
+  source_facts?: string[] | null;
 };
 
 type JobTarget = {
@@ -35,6 +36,7 @@ type GeneratedItem = {
   type: GeneratedContentType;
   content: string;
   user_edited_content?: string | null;
+  evidence_card_ids?: string[] | null;
   created_at: string;
 };
 
@@ -60,6 +62,7 @@ export default function BuilderPage() {
     id: string;
     content: string;
     user_edited_content?: string | null;
+    evidence_card_ids?: string[] | null;
   } | null>(null);
   const [history, setHistory] = useState<GeneratedItem[]>([]);
   const [edited, setEdited] = useState("");
@@ -184,6 +187,17 @@ export default function BuilderPage() {
     setResult(item);
     setEdited(item.user_edited_content || item.content);
   }
+
+  const factsUsed = result
+    ? cards
+        .filter((card) => (result.evidence_card_ids ?? []).includes(card.id))
+        .flatMap((card) =>
+          (card.source_facts ?? []).map((fact) => ({
+            cardTitle: card.title,
+            fact,
+          })),
+        )
+    : [];
 
   return (
     <div className="space-y-6">
@@ -316,6 +330,24 @@ export default function BuilderPage() {
                     Original
                   </Badge>
                   <p className="whitespace-pre-wrap">{result.content}</p>
+                </div>
+                <div className="rounded-md border border-teal-100 bg-teal-50 p-3">
+                  <p className="mb-2 text-sm font-medium text-teal-950">
+                    Facts used
+                  </p>
+                  {factsUsed.length > 0 ? (
+                    <ul className="list-disc space-y-1 pl-5 text-sm text-teal-950">
+                      {factsUsed.map(({ cardTitle, fact }) => (
+                        <li key={`${cardTitle}-${fact}`}>
+                          <span className="font-medium">{cardTitle}:</span> {fact}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-teal-900">
+                      No source facts were stored for the selected evidence cards.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edited">Your version</Label>

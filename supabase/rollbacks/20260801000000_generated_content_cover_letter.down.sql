@@ -1,0 +1,2 @@
+-- Rollback note: Postgres cannot safely remove enum values once added.
+-- Leave 'cover-letter-paragraph' in public.generated_content_type on rollback.

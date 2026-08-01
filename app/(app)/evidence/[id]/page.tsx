@@ -27,8 +27,73 @@ type CardData = {
   source_facts: string[];
   confidence_status: "draft" | "confirmed";
   is_favourite: boolean;
-  experiences?: { title?: string; organisation?: string } | null;
+  experiences?: {
+    title?: string;
+    organisation?: string;
+    description?: string | null;
+    responsibilities?: string[] | null;
+  } | null;
 };
+
+const REVIEW_CHECKLIST = [
+  "The title names a real situation, not a generic skill.",
+  "The actions describe what I personally did.",
+  "The outcome is true and does not overclaim impact.",
+  "Suggested metrics have been edited or removed if they are not right.",
+  "The source facts are enough to justify the final wording.",
+];
+
+function normalizeForMatch(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function keywordSet(value: string) {
+  return new Set(
+    normalizeForMatch(value)
+      .split(" ")
+      .filter((word) => word.length > 3),
+  );
+}
+
+function responsibilityCovered(responsibility: string, card: CardData) {
+  const haystack = normalizeForMatch(
+    [
+      card.title,
+      card.summary,
+      card.situation,
+      card.task,
+      ...card.actions,
+      card.outcome,
+      card.reflection,
+      ...card.source_facts,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+  const normalizedResponsibility = normalizeForMatch(responsibility);
+  if (!normalizedResponsibility) return true;
+  if (haystack.includes(normalizedResponsibility)) return true;
+
+  const words = [...keywordSet(responsibility)];
+  if (words.length === 0) return true;
+  const matched = words.filter((word) => haystack.includes(word)).length;
+  return matched >= Math.min(3, words.length);
+}
+
+function factsForField(card: CardData, value: string | string[] | null | undefined) {
+  const text = normalizeForMatch(Array.isArray(value) ? value.join(" ") : value ?? "");
+  if (!text) return [];
+  return (card.source_facts ?? []).filter((fact) => {
+    const words = [...keywordSet(fact)];
+    if (words.length === 0) return false;
+    const matched = words.filter((word) => text.includes(word)).length;
+    return matched >= Math.min(2, words.length);
+  });
+}
 
 export default function EvidenceCardPage() {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +103,10 @@ export default function EvidenceCardPage() {
   const [saving, setSaving] = useState(false);
   const [additionalDetails, setAdditionalDetails] = useState("");
   const [enriching, setEnriching] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [reviewedItems, setReviewedItems] = useState<string[]>([]);
+  const [gapScanning, setGapScanning] = useState(false);
+  const [gapQuestions, setGapQuestions] = useState<string[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -162,9 +231,62 @@ export default function EvidenceCardPage() {
     toast.success("Suggested updates added. Review before confirming");
   }
 
+  async function duplicateCard() {
+    if (!card) return;
+    setDuplicating(true);
+    const res = await fetch("/api/evidence", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "duplicate",
+        cardId: card.id,
+      }),
+    });
+    const data = await res.json();
+    setDuplicating(false);
+    if (!res.ok) {
+      toast.error(data.error || "Could not duplicate card");
+      return;
+    }
+    toast.success("Draft copy created");
+    router.push(`/evidence/${data.card.id}`);
+  }
+
+  async function scanForGaps() {
+    if (!card) return;
+    setGapScanning(true);
+    const uncoveredResponsibilities = (card.experiences?.responsibilities ?? [])
+      .filter((responsibility) => !responsibilityCovered(responsibility, card));
+    const res = await fetch("/api/evidence/interview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "gap-scan",
+        cardId: card.id,
+        uncoveredResponsibilities,
+      }),
+    });
+    const data = await res.json();
+    setGapScanning(false);
+    if (!res.ok) {
+      toast.error(data.error || "Could not scan for gaps");
+      return;
+    }
+    setGapQuestions(data.questions ?? []);
+    toast.success("Gap questions ready");
+  }
+
   if (loading || !card) {
     return <p className="text-stone-600">Loading card…</p>;
   }
+
+  const sourceResponsibilities = card.experiences?.responsibilities ?? [];
+  const coverageRows = sourceResponsibilities
+    .map((responsibility) => ({
+      responsibility,
+      covered: responsibilityCovered(responsibility, card),
+    }))
+    .filter((row) => row.responsibility.trim());
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -186,6 +308,9 @@ export default function EvidenceCardPage() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={toggleFavourite}>
             {card.is_favourite ? "Unfavourite" : "Favourite"}
+          </Button>
+          <Button variant="outline" onClick={duplicateCard} disabled={duplicating}>
+            {duplicating ? "Duplicating..." : "Duplicate as draft"}
           </Button>
           {card.confidence_status === "draft" && (
             <Button onClick={confirmCard} disabled={saving}>
@@ -233,6 +358,80 @@ export default function EvidenceCardPage() {
         </Card>
       )}
 
+      {card.confidence_status === "draft" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Draft review</CardTitle>
+            <CardDescription>
+              Check source coverage before confirming this as trusted evidence.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {coverageRows.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-stone-700">
+                  Source responsibility coverage
+                </p>
+                <ul className="space-y-2">
+                  {coverageRows.map(({ responsibility, covered }) => (
+                    <li
+                      key={responsibility}
+                      className="flex items-start gap-2 rounded-md border border-stone-200 px-3 py-2 text-sm"
+                    >
+                      <Badge variant={covered ? "success" : "warning"}>
+                        {covered ? "covered" : "check"}
+                      </Badge>
+                      <span className="text-stone-700">{responsibility}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-stone-700">Review checklist</p>
+              {REVIEW_CHECKLIST.map((item) => (
+                <label key={item} className="flex items-start gap-2 text-sm text-stone-700">
+                  <input
+                    type="checkbox"
+                    checked={reviewedItems.includes(item)}
+                    onChange={(e) =>
+                      setReviewedItems((current) =>
+                        e.target.checked
+                          ? [...current, item]
+                          : current.filter((value) => value !== item),
+                      )
+                    }
+                  />
+                  <span>{item}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="space-y-3 rounded-md border border-stone-200 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium text-stone-700">AI gap scan</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={scanForGaps}
+                  disabled={gapScanning}
+                >
+                  {gapScanning ? "Scanning..." : "Suggest follow-up questions"}
+                </Button>
+              </div>
+              {gapQuestions.length > 0 && (
+                <ul className="list-disc space-y-1 pl-5 text-sm text-stone-700">
+                  {gapQuestions.map((question) => (
+                    <li key={question}>{question}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Structured fields</CardTitle>
@@ -255,6 +454,11 @@ export default function EvidenceCardPage() {
               value={card.summary}
               onChange={(e) => setCard({ ...card, summary: e.target.value })}
             />
+            {factsForField(card, card.summary).length > 0 && (
+              <p className="text-xs text-teal-700">
+                Source fact: {factsForField(card, card.summary).join(" / ")}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Situation</Label>
@@ -262,6 +466,11 @@ export default function EvidenceCardPage() {
               value={card.situation}
               onChange={(e) => setCard({ ...card, situation: e.target.value })}
             />
+            {factsForField(card, card.situation).length > 0 && (
+              <p className="text-xs text-teal-700">
+                Source fact: {factsForField(card, card.situation).join(" / ")}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Actions (one per line)</Label>
@@ -274,6 +483,11 @@ export default function EvidenceCardPage() {
                 })
               }
             />
+            {factsForField(card, card.actions).length > 0 && (
+              <p className="text-xs text-teal-700">
+                Source fact: {factsForField(card, card.actions).join(" / ")}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Outcome</Label>
@@ -281,6 +495,11 @@ export default function EvidenceCardPage() {
               value={card.outcome}
               onChange={(e) => setCard({ ...card, outcome: e.target.value })}
             />
+            {factsForField(card, card.outcome).length > 0 && (
+              <p className="text-xs text-teal-700">
+                Source fact: {factsForField(card, card.outcome).join(" / ")}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Competencies (comma separated)</Label>

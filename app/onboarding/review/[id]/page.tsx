@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -27,7 +28,11 @@ import {
   ArrowUp01Icon,
   Delete02Icon,
 } from "@hugeicons/core-free-icons";
-import type { ExperienceType, ExtractedExperienceDraft } from "@/types/domain";
+import type {
+  CvSkillCategory,
+  ExperienceType,
+  ExtractedExperienceDraft,
+} from "@/types/domain";
 import { normalizeCvDate } from "@/lib/cv/dates";
 import { ImproveResponsibilitiesControl } from "@/components/improve-responsibilities-control";
 
@@ -119,11 +124,37 @@ const TYPE_OPTIONS: { value: ExperienceType; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
+function importWarnings(exp: ExtractedExperienceDraft) {
+  const warnings: string[] = [];
+  const hasStart = Boolean(exp.startDate);
+  const hasEnd = Boolean(exp.endDate || exp.isCurrent);
+  const title = exp.title.trim().toLowerCase();
+  const responsibilityCount = (exp.responsibilities ?? []).filter((line) =>
+    line.trim(),
+  ).length;
+
+  if (exp.type === "project" && !hasStart && !hasEnd) {
+    warnings.push("Project has no dates; add a rough date before relying on it for timelines.");
+  }
+
+  if (
+    exp.type === "other" ||
+    /additional|other|misc|various|multiple|selected/.test(title) ||
+    responsibilityCount >= 8
+  ) {
+    warnings.push("Low-confidence import: this may hide several separate roles or projects.");
+  }
+
+  return warnings;
+}
+
 export default function CvReviewPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [name, setName] = useState("");
   const [experiences, setExperiences] = useState<ReviewEntry[]>([]);
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillCategories, setSkillCategories] = useState<CvSkillCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -138,6 +169,8 @@ export default function CvReviewPage() {
       }
       const draft = data.cvImport.extracted_draft;
       setName(draft?.name ?? "");
+      setSkills((draft?.skills ?? []) as string[]);
+      setSkillCategories((draft?.skillCategories ?? []) as CvSkillCategory[]);
       setExperiences(
         ((draft?.experiences ?? []) as ExtractedExperienceDraft[]).map((exp) =>
           createEntry({
@@ -218,6 +251,8 @@ export default function CvReviewPage() {
     setSaving(true);
     const payload = {
       name,
+      skills,
+      skillCategories,
       experiences: experiences.map((entry) => {
         const exp = stripClientId(entry);
         return {
@@ -271,6 +306,43 @@ export default function CvReviewPage() {
         <Label htmlFor="name">Name</Label>
         <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
+
+      {(skillCategories.length > 0 || skills.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Imported skills</CardTitle>
+            <CardDescription>
+              Skill categories are preserved with this CV import for matching and gap review.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {skillCategories.length > 0 ? (
+              skillCategories.map((category) => (
+                <div key={category.label} className="space-y-2">
+                  <p className="text-sm font-medium text-stone-700">
+                    {category.label}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {category.skills.map((skill) => (
+                      <Badge key={`${category.label}-${skill}`} variant="secondary">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {skills.map((skill) => (
+                  <Badge key={skill} variant="secondary">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {sections.map((section) => (
         <section key={section.id} className="space-y-3">
@@ -343,6 +415,15 @@ export default function CvReviewPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="grid gap-3">
+                    {importWarnings(exp).length > 0 && (
+                      <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                        {importWarnings(exp).map((warning) => (
+                          <p key={warning} className="text-sm text-amber-900">
+                            {warning}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label>Title</Label>
                       <Input

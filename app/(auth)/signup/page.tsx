@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { OAuthButtons } from "@/components/oauth-buttons";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -88,6 +89,12 @@ export default function SignupPage() {
               {loading ? "Creating…" : "Create account"}
             </Button>
           </form>
+          <div className="my-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-stone-200" />
+            <span className="text-xs uppercase text-stone-500">or</span>
+            <div className="h-px flex-1 bg-stone-200" />
+          </div>
+          <OAuthButtons next="/onboarding" mode="signup" onError={setError} />
           <p className="mt-4 text-sm text-stone-600">
             Already have an account?{" "}
             <Link href="/login" className="underline">

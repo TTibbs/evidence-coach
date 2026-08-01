@@ -7,9 +7,11 @@ import {
   annotateCvSections,
   filterExperiencesDroppingSectionHeadings,
 } from "@/lib/cv/sections";
+import { extractSkillCategoriesFromAnnotatedCv } from "@/lib/cv/skill-categories";
 
 export async function extractCvFromText(cvText: string, userId: string) {
   const annotated = annotateCvSections(cvText);
+  const skillCategories = extractSkillCategoriesFromAnnotatedCv(annotated);
   const result = await withCareerAi(
     { userId, operation: "cv_extraction" },
     (provider) => provider.extractCv({ cvText: annotated }),
@@ -25,6 +27,7 @@ export async function extractCvFromText(cvText: string, userId: string) {
 
   return {
     ...parsed,
+    skillCategories,
     experiences,
   };
 }

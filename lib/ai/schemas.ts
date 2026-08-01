@@ -138,6 +138,14 @@ export const cvExtractionSchema = z.object({
   name: z.string().optional().nullable(),
   experiences: z.array(extractedExperienceSchema),
   skills: z.array(z.string()).default([]),
+  skillCategories: z
+    .array(
+      z.object({
+        label: z.string(),
+        skills: z.array(z.string()).default([]),
+      }),
+    )
+    .optional(),
 });
 
 export const evidenceMetricSchema = z.object({

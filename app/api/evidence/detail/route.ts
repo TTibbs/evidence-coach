@@ -9,7 +9,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabase
     .from("evidence_cards")
-    .select("*, experiences(title, organisation)")
+    .select("*, experiences(title, organisation, description, responsibilities)")
     .eq("id", id)
     .eq("user_id", user!.id)
     .single();

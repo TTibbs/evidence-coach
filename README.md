@@ -42,6 +42,7 @@ npx supabase db push
 4. Fill `.env.local`:
    - **Required for AI:** `GEMINI_API_KEY` (and optional `GEMINI_MODEL`, default `gemini-3.6-flash`)
    - **Optional:** `OPENAI_API_KEY` (not required while OpenAI is disabled)
+   - **Optional auth:** set `NEXT_PUBLIC_AUTH_OAUTH_PROVIDERS=google` after configuring the matching Supabase Auth provider
    - Set `BETA_PLAN_OVERRIDE=prepare` for local testing of voice / JD matching entitlements
    - Use `AI_PROVIDER=mock` for offline/local tests without live Gemini calls
 
@@ -61,6 +62,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL for auth and database clients |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase browser/server anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-only admin access for storage/file proxy operations |
+| `NEXT_PUBLIC_AUTH_OAUTH_PROVIDERS` | No | Comma-separated Supabase OAuth providers to show, e.g. `google` or `google,github` |
 | `DATABASE_URL` | Yes for migrations | Postgres connection string used by `npm run db:*` |
 | `AI_PROVIDER` | Yes | `gemini`, `mock`, or gated `openai` |
 | `GEMINI_API_KEY` | Yes for live AI | Gemini API key for MVP AI workflows |
@@ -93,6 +95,33 @@ for CV downloads and deletes practice audio independently from transcripts/feedb
 All application tables have user-owned RLS policies in the base migration. Keep new
 tables on the same pattern: `user_id = auth.uid()` for reads/writes, and avoid public
 storage buckets for CVs or recordings.
+
+## Supabase OAuth Setup
+
+The app supports Supabase Auth OAuth via `/auth/callback`. Password login/signup
+remain available.
+
+To enable Google:
+
+1. In Google Cloud, create an OAuth client for the app.
+2. Add the Supabase callback URL to Google:
+   `https://YOUR_PROJECT.supabase.co/auth/v1/callback`
+3. In Supabase Dashboard → Authentication → Providers → Google, enable Google and
+   paste the client ID and secret.
+4. In Supabase Dashboard → Authentication → URL Configuration, add allowed app
+   redirects:
+   - `http://localhost:3000/auth/callback`
+   - `https://YOUR_PRODUCTION_DOMAIN/auth/callback`
+5. In `.env.local`, set:
+
+```bash
+NEXT_PUBLIC_AUTH_OAUTH_PROVIDERS=google
+```
+
+For more providers, enable each one in Supabase first, then add it to the comma-
+separated env list, e.g. `google,github`. If a provider is listed here but not
+enabled in Supabase, the button will show but sign-in will fail with a provider
+configuration error.
 
 ## Usage And Cost Tracking
 

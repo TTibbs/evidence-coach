@@ -8,6 +8,15 @@ import { NextResponse } from "next/server";
 const confirmSchema = z.object({
   experiences: z.array(extractedExperienceSchema),
   name: z.string().optional().nullable(),
+  skills: z.array(z.string()).default([]),
+  skillCategories: z
+    .array(
+      z.object({
+        label: z.string(),
+        skills: z.array(z.string()).default([]),
+      }),
+    )
+    .default([]),
 });
 
 const patchSchema = z.object({

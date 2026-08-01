@@ -19,21 +19,31 @@ function coverageBadge(coverage: "strong" | "partial" | "gap") {
   return "outline";
 }
 
+type PracticeSessionSummary = {
+  id: string;
+  question: string;
+  job_target_id?: string | null;
+  practice_attempts?: { count: number }[] | null;
+};
+
 export default function JobTargetPrepPackPage() {
   const { id } = useParams<{ id: string }>();
   const [target, setTarget] = useState<PrepPackJobTarget | null>(null);
   const [cards, setCards] = useState<PrepPackEvidenceCard[]>([]);
+  const [sessions, setSessions] = useState<PracticeSessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const [targetRes, cardsRes] = await Promise.all([
+      const [targetRes, cardsRes, sessionsRes] = await Promise.all([
         fetch(`/api/job-targets/${id}`),
         fetch("/api/evidence?status=confirmed"),
+        fetch("/api/practice/sessions"),
       ]);
-      const [targetData, cardsData] = await Promise.all([
+      const [targetData, cardsData, sessionsData] = await Promise.all([
         targetRes.json(),
         cardsRes.json(),
+        sessionsRes.json(),
       ]);
 
       if (!targetRes.ok) {
@@ -49,6 +59,9 @@ export default function JobTargetPrepPackPage() {
 
       setTarget(targetData.jobTarget);
       setCards(cardsData.cards ?? []);
+      if (sessionsRes.ok) {
+        setSessions(sessionsData.sessions ?? []);
+      }
       setLoading(false);
     }
 
@@ -65,6 +78,39 @@ export default function JobTargetPrepPackPage() {
   }
 
   const requirementsAnalysed = pack.requirements.length > 0;
+  const targetSessions = sessions.filter((session) => session.job_target_id === id);
+  const attemptedQuestions = new Set(targetSessions.map((session) => session.question));
+  const completedQueueItems = pack.likelyQuestions.filter((question) =>
+    attemptedQuestions.has(question),
+  ).length;
+  const totalAttempts = targetSessions.reduce(
+    (sum, session) => sum + (session.practice_attempts?.[0]?.count ?? 0),
+    0,
+  );
+  const retryCount = Math.max(0, totalAttempts - targetSessions.length);
+
+  async function copyPrepSummary() {
+    if (!pack) return;
+    const summary = [
+      pack.targetLabel,
+      "",
+      "Best evidence:",
+      ...(pack.bestEvidence.length > 0
+        ? pack.bestEvidence.map((card) => `- ${card.title}`)
+        : ["- No confirmed evidence mapped yet."]),
+      "",
+      "Gaps:",
+      ...(pack.gaps.length > 0
+        ? pack.gaps.map((gap) => `- ${gap.label}: ${gap.prompt}`)
+        : ["- No uncovered requirements listed."]),
+      "",
+      "Likely questions:",
+      ...pack.likelyQuestions.map((question) => `- ${question}`),
+    ].join("\n");
+
+    await navigator.clipboard.writeText(summary);
+    toast.success("Prep summary copied");
+  }
 
   return (
     <div className="space-y-6">
@@ -87,6 +133,9 @@ export default function JobTargetPrepPackPage() {
           </Button>
           <Button render={<Link href={`/practice?jobTargetId=${target.id}`} />}>
             Practise
+          </Button>
+          <Button type="button" variant="secondary" onClick={copyPrepSummary}>
+            Copy summary
           </Button>
         </div>
       </div>
@@ -160,6 +209,46 @@ export default function JobTargetPrepPackPage() {
           </Card>
 
           <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Practice progress</CardTitle>
+                <CardDescription>
+                  Queue progress is based on practice sessions for this job target.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary">
+                    {completedQueueItems}/{pack.likelyQuestions.length} questions started
+                  </Badge>
+                  <Badge variant={retryCount > 0 ? "success" : "outline"}>
+                    {retryCount} retries
+                  </Badge>
+                </div>
+                {targetSessions.length > 0 ? (
+                  <ul className="space-y-2 text-sm text-stone-700">
+                    {targetSessions.slice(0, 4).map((session) => (
+                      <li key={session.id}>
+                        <Link
+                          href={`/practice/${session.id}`}
+                          className="block rounded-md border border-stone-200 px-3 py-2 hover:border-teal-300"
+                        >
+                          {session.question}
+                          <span className="mt-1 block text-stone-500">
+                            {session.practice_attempts?.[0]?.count ?? 0} attempts
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-stone-600">
+                    No practice sessions started for this job yet.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Best evidence</CardTitle>

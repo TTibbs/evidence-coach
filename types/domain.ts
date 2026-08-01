@@ -71,10 +71,16 @@ export type ExtractedExperienceDraft = {
   responsibilities: string[];
 };
 
+export type CvSkillCategory = {
+  label: string;
+  skills: string[];
+};
+
 export type CvExtractionDraft = {
   name?: string;
   experiences: ExtractedExperienceDraft[];
   skills: string[];
+  skillCategories?: CvSkillCategory[];
 };
 
 export const STARTER_COMPETENCIES = [

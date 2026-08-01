@@ -273,6 +273,62 @@ export async function POST(request: Request) {
     return NextResponse.json({ card });
   }
 
+  if (action === "gap-scan") {
+    const gapScanSchema = z.object({
+      cardId: z.string().uuid(),
+      uncoveredResponsibilities: z.array(z.string()).default([]),
+    });
+    const parsed = gapScanSchema.safeParse(body);
+    if (!parsed.success) return jsonError(parsed.error.message);
+
+    const { data: existingCard, error } = await supabase
+      .from("evidence_cards")
+      .select("*, experiences(*)")
+      .eq("id", parsed.data.cardId)
+      .eq("user_id", user!.id)
+      .single();
+
+    if (error || !existingCard) return jsonError("Evidence card not found", 404);
+    if (existingCard.confidence_status !== "draft") {
+      return jsonError("Only draft evidence cards can be scanned for gaps");
+    }
+
+    const experience = existingCard.experiences as {
+      title: string;
+      organisation?: string | null;
+      description?: string | null;
+      responsibilities?: string[] | null;
+    };
+    const focus =
+      parsed.data.uncoveredResponsibilities.length > 0
+        ? `Check whether this draft is missing detail about: ${parsed.data.uncoveredResponsibilities.join("; ")}`
+        : "Check whether the draft needs any follow-up questions before confirmation.";
+    const suggested = await suggestEvidenceQuestions(
+      {
+        title: experience.title,
+        organisation: experience.organisation,
+        description: [
+          experience.description,
+          `Draft card title: ${existingCard.title}`,
+          `Draft summary: ${existingCard.summary}`,
+          `Draft situation: ${existingCard.situation}`,
+          `Draft actions: ${(existingCard.actions ?? []).join("; ")}`,
+          `Draft outcome: ${existingCard.outcome}`,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        responsibilities: experience.responsibilities ?? [],
+      },
+      user!.id,
+      focus,
+    );
+
+    return NextResponse.json({
+      topic: suggested.topic,
+      questions: suggested.questions.slice(0, 5),
+    });
+  }
+
   if (action === "confirm") {
     const confirmSchema = z.object({
       cardId: z.string().uuid(),

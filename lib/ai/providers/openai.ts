@@ -40,7 +40,6 @@ import {
   nextQuestionSchema,
   practiceFeedbackSchema,
 } from "@/lib/ai/schemas";
-import { openaiStructuredCompletion } from "@/lib/ai/structured";
 import { getOpenAI } from "@/lib/openai";
 import { z } from "zod";
 
@@ -48,10 +47,51 @@ const practiceQuestionSchema = z.object({
   question: z.string().min(1),
 });
 
-/**
- * OpenAI implementation retained for future paid access.
- * Factory must not return this while OpenAI is disabled for users.
- */
+async function openaiStructuredCompletion<T>(
+  schema: z.ZodType<T>,
+  system: string,
+  user: string,
+): Promise<T> {
+  const openai = getOpenAI();
+  const response = await openai.chat.completions.create({
+    model: getOpenAiModel(),
+    temperature: 0.3,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: `${system}
+
+Respond with valid JSON only matching the required schema.
+Do not present invented figures as confirmed facts. Follow the system prompt for whether suggested estimates are allowed.
+Prefer modest credible wording over exaggeration.`,
+      },
+      { role: "user", content: user },
+    ],
+  });
+
+  const raw = response.choices[0]?.message?.content;
+  if (!raw) {
+    throw new Error("Empty AI response");
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("AI returned invalid JSON");
+  }
+
+  const result = schema.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(
+      `AI response failed schema validation: ${result.error.message}`,
+    );
+  }
+
+  return result.data;
+}
+
 export class OpenAiCareerAiProvider implements CareerAiProvider {
   readonly name = "openai" as const;
   readonly model = getOpenAiModel();
@@ -62,8 +102,7 @@ export class OpenAiCareerAiProvider implements CareerAiProvider {
     user: string,
   ): Promise<T> {
     try {
-      const { data } = await openaiStructuredCompletion(schema, system, user);
-      return data;
+      return await openaiStructuredCompletion(schema, system, user);
     } catch (err) {
       throw mapProviderFailure(err, "openai");
     }

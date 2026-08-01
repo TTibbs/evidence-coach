@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { requireUser, jsonError } from "@/lib/api/auth";
+import {
+  buildDuplicatedEvidenceDraft,
+  buildMergedEvidenceDraft,
+  type EvidenceCardForCompose,
+} from "@/lib/evidence-card-compose";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -47,6 +52,119 @@ const patchSchema = z.object({
   isFavourite: z.boolean().optional(),
   archived: z.boolean().optional(),
 });
+
+const postSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("duplicate"),
+    cardId: z.string().uuid(),
+  }),
+  z.object({
+    action: z.literal("merge"),
+    cardIds: z.array(z.string().uuid()).min(2),
+    archiveOriginals: z.boolean().default(false),
+  }),
+]);
+
+const cardSelect =
+  "id, experience_id, title, summary, situation, task, actions, outcome, reflection, skills, competencies, metrics, source_facts";
+
+function orderCardsBySelection(
+  cards: EvidenceCardForCompose[],
+  selectedIds: string[],
+) {
+  const byId = new Map(cards.map((card) => [card.id, card]));
+  return selectedIds.flatMap((id) => {
+    const card = byId.get(id);
+    return card ? [card] : [];
+  });
+}
+
+export async function POST(request: Request) {
+  const { user, supabase, response } = await requireUser();
+  if (response) return response;
+
+  const parsed = postSchema.safeParse(await request.json());
+  if (!parsed.success) return jsonError(parsed.error.message);
+
+  if (parsed.data.action === "duplicate") {
+    const { data: card, error } = await supabase
+      .from("evidence_cards")
+      .select(cardSelect)
+      .eq("id", parsed.data.cardId)
+      .eq("user_id", user!.id)
+      .single();
+
+    if (error || !card) return jsonError("Evidence card not found", 404);
+
+    const { data: duplicated, error: insertError } = await supabase
+      .from("evidence_cards")
+      .insert({
+        user_id: user!.id,
+        ...buildDuplicatedEvidenceDraft(card as EvidenceCardForCompose),
+      })
+      .select()
+      .single();
+
+    if (insertError) return jsonError(insertError.message, 500);
+    return NextResponse.json({ card: duplicated }, { status: 201 });
+  }
+
+  const selectedIds = [...new Set(parsed.data.cardIds)];
+  if (selectedIds.length < 2) {
+    return jsonError("Select at least two evidence cards to merge");
+  }
+
+  const { data: cards, error } = await supabase
+    .from("evidence_cards")
+    .select(cardSelect)
+    .eq("user_id", user!.id)
+    .is("archived_at", null)
+    .in("id", selectedIds);
+
+  if (error) return jsonError(error.message, 500);
+  if ((cards ?? []).length !== selectedIds.length) {
+    return jsonError("One or more selected evidence cards could not be found", 404);
+  }
+
+  let draft;
+  try {
+    draft = buildMergedEvidenceDraft(
+      orderCardsBySelection(cards as EvidenceCardForCompose[], selectedIds),
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not merge cards";
+    return jsonError(message);
+  }
+
+  const { data: merged, error: insertError } = await supabase
+    .from("evidence_cards")
+    .insert({
+      user_id: user!.id,
+      ...draft,
+    })
+    .select()
+    .single();
+
+  if (insertError) return jsonError(insertError.message, 500);
+
+  if (parsed.data.archiveOriginals) {
+    const { error: archiveError } = await supabase
+      .from("evidence_cards")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("user_id", user!.id)
+      .in("id", selectedIds);
+
+    if (archiveError) return jsonError(archiveError.message, 500);
+  }
+
+  return NextResponse.json(
+    {
+      card: merged,
+      archivedIds: parsed.data.archiveOriginals ? selectedIds : [],
+    },
+    { status: 201 },
+  );
+}
 
 export async function PATCH(request: Request) {
   const { user, supabase, response } = await requireUser();

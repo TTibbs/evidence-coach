@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { STARTER_COMPETENCIES } from "@/types/domain";
 import { EvidenceBankFilters } from "@/components/evidence-bank-filters";
+import {
+  EvidenceBankList,
+  type EvidenceBankCard,
+} from "@/components/evidence-bank-list";
 
 type Props = {
   searchParams: Promise<Record<string, string | undefined>>;
@@ -67,38 +70,7 @@ export default async function EvidenceBankPage({ searchParams }: Props) {
         </div>
       )}
 
-      <ul className="space-y-2">
-        {(cards ?? []).map((card) => (
-          <li key={card.id}>
-            <Link
-              href={`/evidence/${card.id}`}
-              className="block rounded-lg border border-stone-200 bg-white px-4 py-3 hover:border-teal-300"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-medium">{card.title}</p>
-                <div className="flex gap-2">
-                  {card.is_favourite && <Badge>Favourite</Badge>}
-                  <Badge
-                    variant={
-                      card.confidence_status === "confirmed" ? "success" : "warning"
-                    }
-                  >
-                    {card.confidence_status}
-                  </Badge>
-                </div>
-              </div>
-              <p className="mt-1 text-sm text-stone-500">
-                {(card.experiences as { title?: string } | null)?.title}
-              </p>
-              <p className="mt-1 line-clamp-2 text-sm text-stone-600">{card.summary}</p>
-            </Link>
-          </li>
-        ))}
-      </ul>
-
-      {(cards ?? []).length === 0 && (
-        <p className="text-stone-600">No evidence cards match these filters.</p>
-      )}
+      <EvidenceBankList cards={(cards ?? []) as EvidenceBankCard[]} />
     </div>
   );
 }

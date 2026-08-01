@@ -41,6 +41,11 @@ yarn-error.log*
 supabase/.branches/
 supabase/.temp/
 
+# local content generation artifacts
+/content-assets/
+/scripts/capture-launch-assets.mjs
+/scripts/seed-demo-content.mjs
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
