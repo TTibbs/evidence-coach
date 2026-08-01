@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { ExperienceRow } from "@/components/experience-row";
+import { ExperiencesList } from "@/components/experiences-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -22,15 +22,15 @@ export default async function ExperiencesPage({ searchParams }: Props) {
     .eq("user_id", user!.id)
     .order("created_at", { ascending: false });
 
-  const grouped = (experiences ?? []).reduce<Record<string, typeof experiences>>(
-    (acc, exp) => {
-      const key = exp.type;
-      acc[key] = acc[key] ?? [];
-      acc[key]!.push(exp);
-      return acc;
-    },
-    {},
-  );
+  const experienceItems = (experiences ?? []).map((exp) => ({
+    id: exp.id,
+    type: exp.type,
+    title: exp.title,
+    organisation: exp.organisation,
+    evidenceCount: Array.isArray(exp.evidence_cards)
+      ? (exp.evidence_cards[0] as { count?: number })?.count ?? 0
+      : 0,
+  }));
 
   return (
     <div className="space-y-6">
@@ -78,30 +78,7 @@ export default async function ExperiencesPage({ searchParams }: Props) {
         </Card>
       )}
 
-      {Object.entries(grouped).map(([type, items]) => (
-        <section key={type} className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
-            {type}
-          </h2>
-          <ul className="space-y-2">
-            {items?.map((exp) => {
-              const count = Array.isArray(exp.evidence_cards)
-                ? (exp.evidence_cards[0] as { count?: number })?.count ?? 0
-                : 0;
-              return (
-                <ExperienceRow
-                  key={exp.id}
-                  id={exp.id}
-                  title={exp.title}
-                  organisation={exp.organisation}
-                  evidenceCount={count}
-                  focus={focus}
-                />
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+      <ExperiencesList experiences={experienceItems} focus={focus} />
     </div>
   );
 }

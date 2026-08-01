@@ -26,6 +26,9 @@ type ExperienceRowProps = {
   organisation: string | null;
   evidenceCount: number;
   focus?: string;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelectedChange?: () => void;
 };
 
 export function ExperienceRow({
@@ -34,6 +37,9 @@ export function ExperienceRow({
   organisation,
   evidenceCount,
   focus,
+  selectionMode = false,
+  selected = false,
+  onSelectedChange,
 }: ExperienceRowProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -62,27 +68,55 @@ export function ExperienceRow({
       ? `This also deletes ${evidenceCount} linked evidence card${evidenceCount === 1 ? "" : "s"}. This cannot be undone.`
       : "This cannot be undone.";
 
+  const href = focus
+    ? `/experiences/${id}?focus=${encodeURIComponent(focus)}`
+    : `/experiences/${id}`;
+
+  const content = (
+    <>
+      {selectionMode && (
+        <input
+          type="checkbox"
+          checked={selected}
+          readOnly
+          tabIndex={-1}
+          aria-hidden="true"
+          className="size-4 shrink-0 accent-teal-700"
+        />
+      )}
+      <div className="min-w-0">
+        <p className="truncate font-medium text-stone-900">{title}</p>
+        <p className="truncate text-sm text-stone-500">
+          {organisation || "No organisation"}
+        </p>
+      </div>
+      <Badge variant="secondary" className="ml-auto shrink-0">
+        {evidenceCount} evidence
+      </Badge>
+    </>
+  );
+
   return (
-    <li className="flex items-stretch gap-1 rounded-lg border border-stone-200 bg-white hover:border-teal-300">
-      <Link
-        href={
-          focus
-            ? `/experiences/${id}?focus=${encodeURIComponent(focus)}`
-            : `/experiences/${id}`
-        }
-        className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3"
-      >
-        <div className="min-w-0">
-          <p className="truncate font-medium text-stone-900">{title}</p>
-          <p className="truncate text-sm text-stone-500">
-            {organisation || "No organisation"}
-          </p>
-        </div>
-        <Badge variant="secondary" className="shrink-0">
-          {evidenceCount} evidence
-        </Badge>
-      </Link>
-      <div className="flex items-center border-l border-stone-100 pr-2 pl-1">
+    <li className="flex items-stretch gap-1 rounded-lg border border-stone-200 bg-white hover:border-teal-300 has-checked:border-teal-500 has-checked:bg-teal-50/40">
+      {selectionMode ? (
+        <button
+          type="button"
+          aria-pressed={selected}
+          onClick={onSelectedChange}
+          className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          {content}
+        </button>
+      ) : (
+        <Link
+          href={href}
+          className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          {content}
+        </Link>
+      )}
+      {!selectionMode && (
+        <div className="flex items-center border-l border-stone-100 pr-2 pl-1">
         <AlertDialog
           open={open}
           onOpenChange={(next) => {
@@ -124,7 +158,8 @@ export function ExperienceRow({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
+        </div>
+      )}
     </li>
   );
 }
