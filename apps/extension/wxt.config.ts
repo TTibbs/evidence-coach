@@ -5,7 +5,7 @@ export default defineConfig({
     name: "Evidence Coach Capture",
     description: "Capture job descriptions and open them as Evidence Coach drafts.",
     permissions: ["activeTab", "scripting", "storage"],
-    host_permissions: ["*://*.linkedin.com/jobs/*"],
+    host_permissions: ["*://*.linkedin.com/*", "http://localhost:3000/*"],
     action: {
       default_title: "Capture job description",
     },

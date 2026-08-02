@@ -9,16 +9,37 @@ type CapturedJobDraft = {
   capturedAt: string;
 };
 
+type JobTrustCheckResult = {
+  status: "good_signals" | "needs_review" | "unable_to_verify";
+  score: number;
+  summary: string;
+  provider: "tavily" | "gemini" | "none";
+  officialListing: {
+    status: "found" | "likely_found" | "not_found" | "not_checked";
+    url: string | null;
+    label: string;
+  };
+  manualSearchUrl: string | null;
+  signals: Array<{
+    id: string;
+    label: string;
+    status: "positive" | "neutral" | "warning" | "unknown";
+    detail: string;
+  }>;
+};
+
 const DEFAULT_APP_URL = "http://localhost:3000";
 const LEGACY_PROMPT_IDS = ["evidence-coach-capture-prompt"];
 const PROMPT_ID = "evidence-coach-capture-prompt-v2";
 const PROMPT_ENABLED_KEY = "linkedinPromptEnabled";
+const POPUP_OPEN_UNTIL_KEY = "extensionPopupOpenUntil";
 
 let activePromptKey: string | null = null;
 let dismissedPromptKey: string | null = null;
+let syncQueued = false;
 
 export default defineContentScript({
-  matches: ["*://*.linkedin.com/jobs/*"],
+  matches: ["*://*.linkedin.com/*"],
   runAt: "document_idle",
   main(ctx) {
     browser.runtime.onMessage.addListener((message) => {
@@ -30,6 +51,7 @@ export default defineContentScript({
     ctx.setInterval(() => {
       void syncPrompt();
     }, 1500);
+    installNavigationListeners();
   },
 });
 
@@ -43,10 +65,18 @@ function isCaptureMessage(message: unknown): message is { type: "capture-linkedi
 }
 
 async function syncPrompt() {
+  if (!isLinkedInJobView()) {
+    activePromptKey = null;
+    dismissedPromptKey = null;
+    removePrompt();
+    return;
+  }
+
   const promptKey = currentJobPromptKey();
   if (promptKey !== activePromptKey) {
     activePromptKey = promptKey;
     dismissedPromptKey = null;
+    removePrompt();
   }
 
   if (!(await shouldShowPrompt())) {
@@ -58,9 +88,17 @@ async function syncPrompt() {
 }
 
 async function shouldShowPrompt() {
-  const stored = await browser.storage.local.get(PROMPT_ENABLED_KEY);
+  const stored = await browser.storage.local.get([
+    PROMPT_ENABLED_KEY,
+    POPUP_OPEN_UNTIL_KEY,
+  ]);
   const promptEnabled = stored[PROMPT_ENABLED_KEY] !== false;
   if (!promptEnabled) return false;
+
+  const popupOpenUntil = Number(stored[POPUP_OPEN_UNTIL_KEY] ?? 0);
+  if (Number.isFinite(popupOpenUntil) && popupOpenUntil > Date.now()) {
+    return false;
+  }
 
   return dismissedPromptKey !== currentJobPromptKey();
 }
@@ -145,7 +183,71 @@ function extractJobDescriptionText() {
 
 function currentJobPromptKey() {
   const url = new URL(location.href);
-  return url.searchParams.get("currentJobId") ?? url.pathname;
+  return currentJobId() ?? visibleJobIdentity() ?? url.pathname;
+}
+
+function isLinkedInJobView() {
+  if (!location.hostname.endsWith("linkedin.com")) return false;
+  if (!location.pathname.includes("/jobs")) return false;
+  return Boolean(currentJobId() || visibleJobIdentity());
+}
+
+function currentJobId() {
+  const url = new URL(location.href);
+  const selectedJobId = url.searchParams.get("currentJobId");
+  if (selectedJobId) return selectedJobId;
+
+  return url.pathname.match(/\/jobs\/view\/(\d+)/)?.[1] ?? null;
+}
+
+function visibleJobIdentity() {
+  const title = firstText([
+    ".job-details-jobs-unified-top-card__job-title h1",
+    ".job-details-jobs-unified-top-card__job-title",
+    ".jobs-unified-top-card__job-title h1",
+    ".jobs-unified-top-card__job-title",
+  ]);
+  const description = document.querySelector<HTMLElement>(
+    ".jobs-description, .jobs-description__content, #job-details",
+  )?.innerText;
+
+  if (!title || !description || description.trim().length < 200) return null;
+  return `${title}:${description.trim().slice(0, 80)}`;
+}
+
+function installNavigationListeners() {
+  const schedule = () => schedulePromptSync();
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
+
+  history.pushState = function pushState(...args) {
+    const result = originalPushState.apply(this, args);
+    schedule();
+    return result;
+  };
+
+  history.replaceState = function replaceState(...args) {
+    const result = originalReplaceState.apply(this, args);
+    schedule();
+    return result;
+  };
+
+  window.addEventListener("popstate", schedule);
+
+  const observer = new MutationObserver(schedule);
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+function schedulePromptSync() {
+  if (syncQueued) return;
+  syncQueued = true;
+  window.setTimeout(() => {
+    syncQueued = false;
+    void syncPrompt();
+  }, 250);
 }
 
 function removePrompt() {
@@ -182,6 +284,75 @@ function buildImportUrl(draft: CapturedJobDraft) {
   return url.toString();
 }
 
+async function fetchJobTrustCheck(draft: CapturedJobDraft) {
+  const appUrl = (
+    import.meta.env.WXT_EVIDENCE_COACH_URL ?? DEFAULT_APP_URL
+  ).replace(/\/$/, "");
+  const response = await fetch(`${appUrl}/api/job-trust-check`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: draft.title,
+      company: draft.company,
+      description: draft.description,
+      sourceUrl: draft.sourceUrl,
+    }),
+  });
+
+  if (!response.ok) throw new Error("Job confidence check failed.");
+  const payload = (await response.json()) as { check?: JobTrustCheckResult };
+  if (!payload.check) throw new Error("Job confidence check returned no result.");
+  return payload.check;
+}
+
+async function renderPromptTrustCheck(
+  shadow: ShadowRoot,
+  draft: CapturedJobDraft,
+) {
+  const trust = shadow.querySelector<HTMLElement>("#trust");
+  const trustBadge = shadow.querySelector<HTMLElement>("#trust-badge");
+  const officialSearch =
+    shadow.querySelector<HTMLAnchorElement>("#official-search");
+  if (!trust) return;
+
+  try {
+    const check = await fetchJobTrustCheck(draft);
+    trust.textContent = `${trustLabel(check)}${providerLabel(check)} - ${check.summary}`;
+    if (trustBadge) trustBadge.textContent = trustBadgeLabel(check);
+
+    if (officialSearch && check.manualSearchUrl) {
+      officialSearch.hidden = false;
+      officialSearch.href = check.officialListing.url ?? check.manualSearchUrl;
+      officialSearch.textContent =
+        check.officialListing.url === null
+          ? "Search listing"
+          : "Official listing";
+    }
+  } catch {
+    trust.textContent =
+      "Confidence check unavailable. You can still open a reviewable draft.";
+    if (trustBadge) trustBadge.textContent = "Unavailable";
+  }
+}
+
+function trustLabel(check: JobTrustCheckResult) {
+  if (check.status === "good_signals") return `Confidence ${check.score}/100`;
+  if (check.status === "needs_review") return "Needs review";
+  return "Unable to verify";
+}
+
+function providerLabel(check: JobTrustCheckResult) {
+  if (check.provider === "none") return "";
+  return ` via ${check.provider === "tavily" ? "Tavily" : "Gemini fallback"}`;
+}
+
+function trustBadgeLabel(check: JobTrustCheckResult) {
+  if (check.officialListing.status === "found") return "Found";
+  if (check.officialListing.status === "likely_found") return "Likely";
+  if (check.officialListing.status === "not_found") return "Review";
+  return "Manual";
+}
+
 function mountPrompt() {
   for (const id of LEGACY_PROMPT_IDS) {
     document.getElementById(id)?.remove();
@@ -204,60 +375,110 @@ function mountPrompt() {
       }
 
       .card {
-        width: 286px;
-        border: 1px solid #d6d3d1;
-        border-radius: 12px;
+        width: 326px;
+        border: 1px solid #dedbd4;
+        border-radius: 10px;
         background: #ffffff;
-        box-shadow: 0 20px 45px rgba(28, 25, 23, 0.2);
+        box-shadow: 0 20px 45px rgba(28, 25, 23, 0.18);
         color: #1c1917;
         padding: 14px;
       }
 
       .eyebrow {
-        margin: 0 0 4px;
+        margin: 0;
         color: #0f766e;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 800;
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
 
       .title {
-        margin: 0;
+        margin: 3px 0 0;
         font-size: 15px;
         font-weight: 800;
         line-height: 1.25;
       }
 
       .copy {
-        margin: 6px 0 12px;
+        margin: 6px 0 10px;
         color: #57534e;
-        font-size: 13px;
+        font-size: 12px;
         line-height: 1.4;
       }
 
-      .actions {
-        display: flex;
-        gap: 8px;
+      .trust-row {
+        display: grid;
+        gap: 6px;
+        margin: 0 0 12px;
+        border: 1px solid #ece8e1;
+        border-radius: 8px;
+        background: #fafaf9;
+        padding: 9px 10px;
       }
 
-      button {
-        min-height: 32px;
-        cursor: pointer;
-        border: 1px solid #0f766e;
-        border-radius: 999px;
-        background: #0f766e;
-        padding: 6px 11px;
-        color: #ffffff;
-        font: inherit;
+      .trust-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .trust-label {
+        color: #1c1917;
         font-size: 12px;
         font-weight: 800;
       }
 
-      button.secondary {
-        border-color: #d6d3d1;
+      .badge {
+        border-radius: 999px;
+        background: #e7f3ef;
+        padding: 3px 7px;
+        color: #0f766e;
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      button,
+      a.button {
+        display: inline-flex;
+        min-height: 34px;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border-radius: 999px;
+        padding: 7px 11px;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1;
+        text-decoration: none;
+      }
+
+      button.primary {
+        border: 1px solid #0f766e;
+        background: #0f766e;
+        color: #ffffff;
+      }
+
+      button.secondary,
+      a.button {
+        border: 1px solid #d6d3d1;
         background: #ffffff;
         color: #292524;
+      }
+
+      button.ghost {
+        grid-column: span 2;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #57534e;
       }
 
       .status {
@@ -266,14 +487,33 @@ function mountPrompt() {
         font-size: 12px;
         line-height: 1.35;
       }
+
+      .trust {
+        margin: 0;
+        color: #57534e;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
     </style>
     <section class="card" aria-live="polite">
       <p class="eyebrow">Evidence Coach</p>
       <h2 class="title">Capture selected job?</h2>
-      <p class="copy">Open the visible LinkedIn role in Evidence Coach as a reviewable job-target draft.</p>
+      <p class="copy">Check the role, then open a reviewable draft in Evidence Coach.</p>
+      <div class="trust-row">
+        <div class="trust-head">
+          <span class="trust-label">Job confidence</span>
+          <span id="trust-badge" class="badge">Checking</span>
+        </div>
+        <p id="trust" class="trust">Checking job confidence...</p>
+      </div>
       <div class="actions">
-        <button id="capture" type="button">Open clean draft</button>
-        <button id="dismiss" class="secondary" type="button">Dismiss</button>
+        <button id="capture" class="primary" type="button">Open draft</button>
+        <a id="official-search" class="button" href="#" target="_blank" rel="noreferrer" hidden>Search listing</a>
+        <button id="dismiss" class="ghost" type="button">Dismiss</button>
       </div>
       <p id="status" class="status" hidden></p>
     </section>
@@ -298,4 +538,5 @@ function mountPrompt() {
   });
 
   document.documentElement.append(host);
+  void renderPromptTrustCheck(shadow, extractLinkedInJob());
 }

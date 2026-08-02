@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import {
+  CitationChips,
+  type CitationSource,
+} from "@/components/citation-chips";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,9 +89,26 @@ export default function JobTargetsPage() {
   const [title, setTitle] = useState("");
   const [company, setCompany] = useState("");
   const [description, setDescription] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const draftSources = useMemo<CitationSource[]>(() => {
+    if (!sourceUrl) return [];
+
+    const hostname = safeHostname(sourceUrl);
+    return [
+      {
+        id: "extension-source",
+        label: "Source",
+        title: title || "Captured job source",
+        excerpt:
+          "This job description was captured from the browser extension. Review the source before saving or applying.",
+        url: sourceUrl,
+        meta: hostname ? `Captured from ${hostname}` : "Browser capture",
+      },
+    ];
+  }, [sourceUrl, title]);
 
   async function load() {
     setLoading(true);
@@ -118,6 +139,7 @@ export default function JobTargetsPage() {
     setTitle(draft.title?.trim() || "");
     setCompany(draft.company?.trim() || "");
     setDescription(cleanImportedJobDescription(draft.description));
+    setSourceUrl(draft.sourceUrl?.trim() || "");
     window.history.replaceState(
       null,
       "",
@@ -148,6 +170,7 @@ export default function JobTargetsPage() {
     setTitle("");
     setCompany("");
     setDescription("");
+    setSourceUrl("");
     router.push(`/job-targets/${data.jobTarget.id}`);
   }
 
@@ -198,6 +221,16 @@ export default function JobTargetsPage() {
                 placeholder="Paste the job description…"
               />
             </div>
+            {draftSources.length > 0 && (
+              <div className="rounded-md border border-stone-200 bg-stone-50 px-3 py-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-stone-700">
+                    Captured source
+                  </p>
+                  <CitationChips sources={draftSources} />
+                </div>
+              </div>
+            )}
             <Button type="submit" disabled={creating}>
               {creating ? "Saving…" : "Save target"}
             </Button>
@@ -233,4 +266,12 @@ export default function JobTargetsPage() {
       </div>
     </div>
   );
+}
+
+function safeHostname(value: string) {
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
 }

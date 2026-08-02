@@ -28,25 +28,59 @@
         </label>
       </section>
 
-      <section class="preview" hidden>
-        <label for="description">Captured description</label>
-        <textarea id="description" rows="10"></textarea>
-        <dl>
-          <div>
-            <dt>Role</dt>
-            <dd id="title">-</dd>
-          </div>
-          <div>
-            <dt>Source</dt>
-            <dd id="source">-</dd>
-          </div>
-        </dl>
-      </section>
+      <details class="preview disclosure" hidden open>
+        <summary>
+          <span>Captured description</span>
+          <span id="description-count">Ready</span>
+        </summary>
+        <div class="panel-body">
+          <textarea
+            id="description"
+            rows="8"
+            aria-label="Captured description"
+          ></textarea>
+          <dl>
+            <div>
+              <dt>Role</dt>
+              <dd id="title">-</dd>
+            </div>
+            <div>
+              <dt>Source</dt>
+              <dd id="source">-</dd>
+            </div>
+          </dl>
+        </div>
+      </details>
+
+      <details id="trust-panel" class="trust-panel disclosure" hidden open>
+        <summary>
+          <span>Job confidence</span>
+          <span id="trust-badge">Checking</span>
+        </summary>
+        <div class="panel-body">
+          <p id="trust-summary">Checking job confidence...</p>
+          <ul id="trust-signals"></ul>
+          <a
+            id="official-search"
+            class="inline-action"
+            href="#"
+            target="_blank"
+            rel="noreferrer"
+            hidden
+          >
+            Search official listing
+          </a>
+        </div>
+      </details>
 
       <div class="actions">
-        <button id="capture" type="button">Capture page</button>
-        <button id="open" type="button" disabled>Open in app</button>
-        <button id="copy" type="button" disabled>Copy text</button>
+        <button id="capture" class="button primary" type="button">Capture page</button>
+        <button id="open" class="button secondary" type="button" disabled>
+          Open in app
+        </button>
+        <button id="copy" class="button ghost" type="button" disabled>
+          Copy text
+        </button>
       </div>
     </main>
   </body>
