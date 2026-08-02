@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import {
+  CitationChips,
+  type CitationSource,
+} from "@/components/citation-chips";
+import type {
+  JobTrustCheckResult,
+  JobTrustSignal,
+} from "@/lib/job-trust";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -15,6 +23,10 @@ type JobTarget = {
   title: string;
   company?: string | null;
   description?: string | null;
+  source_url?: string | null;
+  trust_check?: JobTrustCheckResult | null;
+  trust_checked_at?: string | null;
+  official_listing_url?: string | null;
   extracted_skills?: string[];
   extracted_competencies?: string[];
   match_summary?: {
@@ -83,6 +95,8 @@ export default function JobTargetDetailPage() {
   const gapFocusHref = (gap: string) =>
     `/experiences?focus=${encodeURIComponent(gap)}`;
   const practiseHref = `/practice?jobTargetId=${encodeURIComponent(target.id)}`;
+  const trustCheck = target.trust_check;
+  const trustSources = buildTrustSources(target);
 
   return (
     <div className="space-y-6">
@@ -103,6 +117,90 @@ export default function JobTargetDetailPage() {
           </Button>
         </div>
       </div>
+
+      {trustCheck && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Job confidence</CardTitle>
+                <CardDescription>
+                  {trustCheck.summary}
+                </CardDescription>
+              </div>
+              <Badge variant={trustBadgeVariant(trustCheck.status)}>
+                {trustLabel(trustCheck)}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-stone-700">
+                  Confidence {trustCheck.score}/100 via {providerLabel(trustCheck)}
+                  {trustCheck.cached ? " · cached" : ""}
+                </p>
+                {target.trust_checked_at && (
+                  <p className="text-xs text-stone-500">
+                    Checked {formatCheckedAt(target.trust_checked_at)}
+                  </p>
+                )}
+              </div>
+              <CitationChips sources={trustSources} />
+            </div>
+
+            <div className="grid gap-2 md:grid-cols-2">
+              {trustCheck.signals.map((signal) => (
+                <div
+                  key={signal.id}
+                  className="rounded-md border border-stone-200 bg-stone-50 px-3 py-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-stone-800">
+                      {signal.label}
+                    </p>
+                    <Badge variant={signalBadgeVariant(signal.status)}>
+                      {signal.status.replace("_", " ")}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-sm text-stone-600">{signal.detail}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {trustCheck.officialListing.url && (
+                <Button
+                  variant="outline"
+                  render={
+                    <Link
+                      href={trustCheck.officialListing.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  }
+                >
+                  Open official listing
+                </Button>
+              )}
+              {trustCheck.manualSearchUrl && (
+                <Button
+                  variant="ghost"
+                  render={
+                    <Link
+                      href={trustCheck.manualSearchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  }
+                >
+                  Search manually
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -226,4 +324,78 @@ export default function JobTargetDetailPage() {
       )}
     </div>
   );
+}
+
+function buildTrustSources(target: JobTarget): CitationSource[] {
+  const sources: CitationSource[] = [];
+  const check = target.trust_check;
+
+  if (target.source_url) {
+    sources.push({
+      id: "captured-source",
+      label: "Source",
+      title: target.title,
+      excerpt: "The original page captured for this saved job target.",
+      url: target.source_url,
+      meta: safeHostname(target.source_url) || "Captured source",
+    });
+  }
+
+  if (check?.officialListing.url) {
+    sources.push({
+      id: "official-listing",
+      label: "Official",
+      title: check.officialListing.label,
+      excerpt: check.summary,
+      url: check.officialListing.url,
+      meta: "Official listing candidate",
+    });
+  }
+
+  return sources;
+}
+
+function trustLabel(check: JobTrustCheckResult) {
+  if (check.status === "good_signals") return "Good signals";
+  if (check.status === "needs_review") return "Needs review";
+  return "Unable to verify";
+}
+
+function trustBadgeVariant(
+  status: JobTrustCheckResult["status"],
+): "success" | "warning" | "outline" {
+  if (status === "good_signals") return "success";
+  if (status === "needs_review") return "warning";
+  return "outline";
+}
+
+function signalBadgeVariant(
+  status: JobTrustSignal["status"],
+): "success" | "warning" | "outline" {
+  if (status === "positive") return "success";
+  if (status === "warning") return "warning";
+  return "outline";
+}
+
+function providerLabel(check: JobTrustCheckResult) {
+  if (check.provider === "tavily") return "Tavily";
+  if (check.provider === "gemini") return "Gemini";
+  return "manual signals";
+}
+
+function formatCheckedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "recently";
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function safeHostname(value: string) {
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
 }

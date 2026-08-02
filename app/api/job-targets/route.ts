@@ -1,12 +1,14 @@
 import { z } from "zod";
 import { requireUser, jsonError } from "@/lib/api/auth";
 import { assertWithinLimit, EntitlementError } from "@/lib/entitlements/check";
+import { runJobTrustCheck } from "@/lib/job-trust-service";
 import { NextResponse } from "next/server";
 
 const createSchema = z.object({
   title: z.string().min(1),
   company: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  sourceUrl: z.string().url().optional().nullable(),
 });
 
 export async function GET() {
@@ -37,6 +39,16 @@ export async function POST(request: Request) {
     throw e;
   }
 
+  const trustCheck =
+    parsed.data.sourceUrl || parsed.data.company
+      ? await runJobTrustCheck({
+          title: parsed.data.title,
+          company: parsed.data.company,
+          description: parsed.data.description,
+          sourceUrl: parsed.data.sourceUrl,
+        })
+      : null;
+
   const { data, error } = await supabase
     .from("job_targets")
     .insert({
@@ -44,6 +56,10 @@ export async function POST(request: Request) {
       title: parsed.data.title,
       company: parsed.data.company,
       description: parsed.data.description,
+      source_url: parsed.data.sourceUrl,
+      trust_check: trustCheck,
+      trust_checked_at: trustCheck?.checkedAt,
+      official_listing_url: trustCheck?.officialListing.url,
     })
     .select()
     .single();

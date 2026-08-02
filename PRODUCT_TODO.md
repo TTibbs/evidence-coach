@@ -49,13 +49,14 @@ Last updated: 2026-08-02
 ## Later Expansion
 
 - [x] Browser extension for job descriptions.
-- [ ] Browser-extension job confidence check before saving:
+- [x] Browser-extension job confidence check before saving:
   - [x] Add app API contract for official-listing and quality signals.
   - [x] Show compact confidence check inside the extension prompt/popup before opening Evidence Coach.
   - [x] Add "Open official listing" when a confident company-site or ATS match is found.
   - [x] Add server-side official listing search provider with Tavily primary and Gemini fallback for provider exhaustion/unavailability.
-  - [ ] Add caching, rate limits, and optional candidate page extraction for official-listing checks.
-  - [ ] Save confidence check results with job targets for later review.
+  - [x] Add caching and rate limits for official-listing checks.
+  - [x] Save confidence check results with job targets for later review.
+  - [x] Add optional candidate page extraction for official-listing checks.
 - [ ] Job-board imports.
 - [ ] Full CV document editor.
 - [x] OAuth sign-in.

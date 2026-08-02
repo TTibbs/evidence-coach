@@ -37,6 +37,47 @@ describe("findOfficialJobListings", () => {
     expect(gemini).not.toHaveBeenCalled();
   });
 
+  it("can enrich top candidates with page text before scoring", async () => {
+    const gemini = vi.fn();
+    const extractCandidatePage = vi.fn(async () => ({
+      title: "Full Stack Engineer - Example Co Careers",
+      text: "Example Co is hiring a Full Stack Engineer in London. Requirements include TypeScript, React, and Node.js.",
+    }));
+
+    const result = await findOfficialJobListings(role, {
+      tavily: async () => ({
+        status: "ok",
+        provider: "tavily",
+        candidates: [
+          {
+            title: "Software role",
+            url: "https://example.com/careers/software",
+            snippet: "Engineering job opening.",
+            provider: "tavily",
+            providerScore: 0.5,
+          },
+        ],
+      }),
+      gemini,
+      extractCandidatePage,
+    });
+
+    expect(result.status).toBe("found");
+    expect(result.provider).toBe("tavily");
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        pageExtracted: true,
+        matchReasons: expect.arrayContaining([
+          "candidate page checked",
+          "company appears in result",
+          "title closely matches",
+        ]),
+      }),
+    );
+    expect(extractCandidatePage).toHaveBeenCalledTimes(1);
+    expect(gemini).not.toHaveBeenCalled();
+  });
+
   it("does not call Gemini when Tavily returns weak candidates", async () => {
     const gemini = vi.fn();
 

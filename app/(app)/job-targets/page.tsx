@@ -158,7 +158,12 @@ export default function JobTargetsPage() {
     const res = await fetch("/api/job-targets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, company, description: cleanedDescription }),
+      body: JSON.stringify({
+        title,
+        company,
+        description: cleanedDescription,
+        sourceUrl: sourceUrl || null,
+      }),
     });
     const data = await res.json();
     setCreating(false);

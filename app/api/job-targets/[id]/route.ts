@@ -4,6 +4,7 @@ import { assertWithinLimit, EntitlementError } from "@/lib/entitlements/check";
 import { recordUsage } from "@/lib/entitlements/record";
 import { analyseJobDescription } from "@/lib/ai/jd";
 import { AiProviderError } from "@/lib/ai/errors";
+import { runJobTrustCheck } from "@/lib/job-trust-service";
 import { NextResponse } from "next/server";
 
 type Params = { params: Promise<{ id: string }> };
@@ -28,6 +29,7 @@ const updateSchema = z.object({
   title: z.string().optional(),
   company: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  sourceUrl: z.string().url().optional().nullable(),
 });
 
 export async function PATCH(request: Request, { params }: Params) {
@@ -36,6 +38,46 @@ export async function PATCH(request: Request, { params }: Params) {
   const { id } = await params;
   const parsed = updateSchema.safeParse(await request.json());
   if (!parsed.success) return jsonError(parsed.error.message);
+
+  const shouldRefreshTrustCheck =
+    parsed.data.title !== undefined ||
+    parsed.data.company !== undefined ||
+    parsed.data.description !== undefined ||
+    parsed.data.sourceUrl !== undefined;
+  let refreshedTrustCheck = null;
+
+  if (shouldRefreshTrustCheck) {
+    const { data: current, error: currentError } = await supabase
+      .from("job_targets")
+      .select("title, company, description, source_url")
+      .eq("id", id)
+      .eq("user_id", user!.id)
+      .single();
+
+    if (currentError || !current) return jsonError("Job target not found", 404);
+
+    const nextTitle = parsed.data.title ?? current.title;
+    const nextCompany =
+      parsed.data.company !== undefined ? parsed.data.company : current.company;
+    const nextDescription =
+      parsed.data.description !== undefined
+        ? parsed.data.description
+        : current.description;
+    const nextSourceUrl =
+      parsed.data.sourceUrl !== undefined
+        ? parsed.data.sourceUrl
+        : current.source_url;
+
+    refreshedTrustCheck =
+      nextSourceUrl || nextCompany
+        ? await runJobTrustCheck({
+            title: nextTitle,
+            company: nextCompany,
+            description: nextDescription,
+            sourceUrl: nextSourceUrl,
+          })
+        : null;
+  }
 
   const { data, error } = await supabase
     .from("job_targets")
@@ -46,6 +88,17 @@ export async function PATCH(request: Request, { params }: Params) {
         : {}),
       ...(parsed.data.description !== undefined
         ? { description: parsed.data.description }
+        : {}),
+      ...(parsed.data.sourceUrl !== undefined
+        ? { source_url: parsed.data.sourceUrl }
+        : {}),
+      ...(shouldRefreshTrustCheck
+        ? {
+            trust_check: refreshedTrustCheck,
+            trust_checked_at: refreshedTrustCheck?.checkedAt ?? null,
+            official_listing_url:
+              refreshedTrustCheck?.officialListing.url ?? null,
+          }
         : {}),
     })
     .eq("id", id)

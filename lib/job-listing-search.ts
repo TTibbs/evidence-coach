@@ -16,6 +16,7 @@ export type OfficialListingCandidate = {
   snippet: string;
   provider: "tavily" | "gemini";
   providerScore?: number;
+  pageExtracted?: boolean;
   matchScore: number;
   matchReasons: string[];
 };
@@ -33,6 +34,7 @@ type RawCandidate = {
   snippet: string;
   provider: "tavily" | "gemini";
   providerScore?: number;
+  pageExtracted?: boolean;
 };
 
 type ProviderUnavailableReason =
@@ -53,7 +55,13 @@ type ProviderOutcome =
 type SearchDeps = {
   tavily?: (input: OfficialListingSearchInput) => Promise<ProviderOutcome>;
   gemini?: (input: OfficialListingSearchInput) => Promise<ProviderOutcome>;
+  extractCandidatePage?: CandidatePageExtractor;
 };
+
+type CandidatePageExtractor = (
+  candidate: RawCandidate,
+  input: OfficialListingSearchInput,
+) => Promise<{ title?: string; text: string } | null>;
 
 const tavilyResponseSchema = z.object({
   results: z
@@ -100,12 +108,22 @@ export async function findOfficialJobListings(
 ): Promise<OfficialListingSearchResult> {
   const tavily = await (deps.tavily ?? searchWithTavily)(input);
   if (tavily.status === "ok") {
-    return scoreProviderCandidates(input, tavily.provider, tavily.candidates);
+    const candidates = await maybeExtractCandidatePages(
+      input,
+      tavily.candidates,
+      deps.extractCandidatePage,
+    );
+    return scoreProviderCandidates(input, tavily.provider, candidates);
   }
 
   const gemini = await (deps.gemini ?? searchWithGeminiGrounding)(input);
   if (gemini.status === "ok") {
-    return scoreProviderCandidates(input, gemini.provider, gemini.candidates);
+    const candidates = await maybeExtractCandidatePages(
+      input,
+      gemini.candidates,
+      deps.extractCandidatePage,
+    );
+    return scoreProviderCandidates(input, gemini.provider, candidates);
   }
 
   return {
@@ -314,11 +332,91 @@ function scoreCandidate(
     score += Math.round(Math.min(1, Math.max(0, candidate.providerScore)) * 10);
   }
 
+  if (candidate.pageExtracted) {
+    score += 5;
+    reasons.push("candidate page checked");
+  }
+
   return {
     ...candidate,
     matchScore: Math.min(100, score),
     matchReasons: reasons,
   };
+}
+
+async function maybeExtractCandidatePages(
+  input: OfficialListingSearchInput,
+  candidates: RawCandidate[],
+  extractor = defaultCandidatePageExtractor(),
+) {
+  if (!extractor || candidates.length === 0) return candidates;
+
+  const ranked = [...candidates]
+    .map((candidate, index) => ({
+      candidate,
+      index,
+      score: scoreCandidate(input, candidate).matchScore,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, candidateExtractionLimit());
+  const extractedByIndex = new Map<number, RawCandidate>();
+
+  await Promise.all(
+    ranked.map(async ({ candidate, index }) => {
+      const extracted = await extractor(candidate, input).catch(() => null);
+      if (!extracted?.text.trim()) return;
+
+      extractedByIndex.set(index, {
+        ...candidate,
+        title: extracted.title?.trim() || candidate.title,
+        snippet: [candidate.snippet, extracted.text]
+          .filter(Boolean)
+          .join("\n\n")
+          .slice(0, 6000),
+        pageExtracted: true,
+      });
+    }),
+  );
+
+  return candidates.map((candidate, index) => extractedByIndex.get(index) ?? candidate);
+}
+
+function defaultCandidatePageExtractor(): CandidatePageExtractor | undefined {
+  if (process.env.JOB_TRUST_EXTRACT_CANDIDATE_PAGES !== "true") return undefined;
+  return fetchCandidatePageText;
+}
+
+async function fetchCandidatePageText(candidate: RawCandidate) {
+  const url = safeHttpUrl(candidate.url);
+  if (!url) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), candidateFetchTimeoutMs());
+
+  try {
+    const response = await fetch(url, {
+      redirect: "follow",
+      signal: controller.signal,
+      headers: {
+        Accept: "text/html,application/xhtml+xml",
+        "User-Agent": "Evidence Coach job confidence check",
+      },
+    });
+
+    if (!response.ok) return null;
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("text/html")) return null;
+
+    const html = await response.text();
+    return {
+      title: extractHtmlTitle(html),
+      text: htmlToReadableText(html).slice(0, 4000),
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function buildSearchQuery(input: OfficialListingSearchInput) {
@@ -358,6 +456,61 @@ function safeHostname(value: string) {
   } catch {
     return "";
   }
+}
+
+function safeHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function candidateExtractionLimit() {
+  const raw = Number.parseInt(process.env.JOB_TRUST_CANDIDATE_EXTRACTION_LIMIT ?? "", 10);
+  if (!Number.isFinite(raw) || raw <= 0) return 2;
+  return Math.min(5, raw);
+}
+
+function candidateFetchTimeoutMs() {
+  const raw = Number.parseInt(process.env.JOB_TRUST_CANDIDATE_FETCH_TIMEOUT_MS ?? "", 10);
+  if (!Number.isFinite(raw) || raw <= 0) return 2500;
+  return Math.min(10_000, raw);
+}
+
+function extractHtmlTitle(html: string) {
+  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return match?.[1] ? decodeHtmlEntities(match[1]).trim() : undefined;
+}
+
+function htmlToReadableText(html: string) {
+  return decodeHtmlEntities(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+      .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/(p|div|section|article|li|h[1-6])>/gi, "\n")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+\n/g, "\n")
+      .replace(/\n\s+/g, "\n")
+      .replace(/[ \t]{2,}/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim(),
+  );
+}
+
+function decodeHtmlEntities(value: string) {
+  return value
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'");
 }
 
 function stripJsonFences(text: string): string {

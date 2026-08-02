@@ -23,6 +23,8 @@ export type JobTrustCheckResult = {
   score: number;
   summary: string;
   provider: "tavily" | "gemini" | "none";
+  cached?: boolean;
+  checkedAt: string;
   officialListing: {
     status: "found" | "likely_found" | "not_found" | "not_checked";
     url: string | null;
@@ -56,6 +58,8 @@ export function assessJobTrust(
     score,
     summary: summaryForStatus(status, officialSearch),
     provider: officialSearch?.provider ?? "none",
+    cached: false,
+    checkedAt: new Date().toISOString(),
     officialListing: officialListingResult(officialSearch),
     manualSearchUrl: buildManualSearchUrl(normalized),
     signals,

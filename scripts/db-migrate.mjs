@@ -25,6 +25,7 @@ import pg from "pg";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const MIGRATIONS_DIR = path.join(ROOT, "supabase", "migrations");
+const ROLLBACKS_DIR = path.join(ROOT, "supabase", "rollbacks");
 
 function loadEnvFiles() {
   for (const name of [".env.local", ".env"]) {
@@ -105,6 +106,8 @@ Environment:
 Migration files live in supabase/migrations/:
   <timestamp>_<name>.sql       forward migration
   <timestamp>_<name>.down.sql  rollback companion (required for down)
+
+Legacy rollback companions in supabase/rollbacks/ are also supported.
 `);
 }
 
@@ -121,7 +124,11 @@ function listMigrationPairs() {
   return files.map((file) => {
     const id = file.replace(/\.sql$/, "");
     const upPath = path.join(MIGRATIONS_DIR, file);
-    const downPath = path.join(MIGRATIONS_DIR, `${id}.down.sql`);
+    const migrationDownPath = path.join(MIGRATIONS_DIR, `${id}.down.sql`);
+    const legacyDownPath = path.join(ROLLBACKS_DIR, `${id}.down.sql`);
+    const downPath = fs.existsSync(migrationDownPath)
+      ? migrationDownPath
+      : legacyDownPath;
     return {
       id,
       file,
