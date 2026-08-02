@@ -15,7 +15,7 @@ Last updated: 2026-08-01
 - [x] Add draft evidence-card enrichment for missing details.
 - [x] Add responsibility-scoped evidence-card starts for multi-role experiences.
 - [x] Add a final “what else did you do in this role?” checkpoint before drafting cards from multi-responsibility experiences.
-- [ ] Show "facts used" beside generated CV/interview content.
+- [x] Show "facts used" beside generated CV/interview content.
 
 ## Evidence Capture Flow
 
@@ -23,19 +23,19 @@ Last updated: 2026-08-01
 - [x] Add “Add missing details” enrichment on draft evidence cards.
 - [x] Add responsibility/role-scope shortcuts from experience detail pages.
 - [x] Add a final coverage checkpoint before drafting evidence cards from experiences with multiple responsibilities.
-- [ ] Add post-draft coverage checks comparing source responsibilities with the drafted card.
-- [ ] Add a non-AI review checklist for draft cards.
-- [ ] Add optional AI gap scan that suggests follow-up questions without editing the card automatically.
-- [ ] Add inline source-fact highlighting for generated evidence fields.
-- [ ] Add duplicate-as-separate-card and merge-selected-cards tools for overlapping evidence later.
+- [x] Add post-draft coverage checks comparing source responsibilities with the drafted card.
+- [x] Add a non-AI review checklist for draft cards.
+- [x] Add optional AI gap scan that suggests follow-up questions without editing the card automatically.
+- [x] Add inline source-fact highlighting for generated evidence fields.
+- [x] Add duplicate-as-separate-card and merge-selected-cards tools for overlapping evidence later.
 
 ## CV Import Flow
 
 - [x] Recognise "Technical Experience" as an employment-style section heading.
 - [x] Split semicolon-compressed "Additional Experience" role lists into separate review entries when title, organisation, and dates are clear.
-- [ ] Preserve skill categories for better matching and gap analysis.
-- [ ] Add review warnings for imported projects without dates.
-- [ ] Add a low-confidence import state for broad catch-all entries that may hide several roles.
+- [x] Preserve skill categories for better matching and gap analysis.
+- [x] Add review warnings for imported projects without dates.
+- [x] Add a low-confidence import state for broad catch-all entries that may hide several roles.
 
 ## Interview Prep Pack
 
@@ -43,13 +43,13 @@ Last updated: 2026-08-01
 - [x] Map best confirmed evidence to each requirement.
 - [x] List missing-evidence prompts for uncovered requirements.
 - [x] Generate likely interview questions grounded in role requirements and gaps.
-- [ ] Track practice queue progress and answer retries.
-- [ ] Add an exportable one-page preparation summary.
+- [x] Track practice queue progress and answer retries.
+- [x] Add an exportable one-page preparation summary.
 
 ## Later Expansion
 
 - [ ] Browser extension for job descriptions.
 - [ ] Job-board imports.
 - [ ] Full CV document editor.
-- [ ] OAuth sign-in.
+- [x] OAuth sign-in.
 - [ ] Offline voice practice.

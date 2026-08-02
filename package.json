@@ -2,6 +2,9 @@
   "name": "evidence-coach",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,6 +12,10 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "extension:dev": "npm run dev -w @evidence-coach/extension",
+    "extension:build": "npm run build -w @evidence-coach/extension",
+    "extension:zip": "npm run zip -w @evidence-coach/extension",
+    "extension:prepare": "npm run postinstall -w @evidence-coach/extension",
     "db:migrate": "node scripts/db-migrate.mjs up",
     "db:migrate:dry": "node scripts/db-migrate.mjs up --dry-run",
     "db:rollback": "node scripts/db-migrate.mjs down",
@@ -29,6 +36,7 @@
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.25.0",
     "mammoth": "^1.12.0",
+    "motion": "^12.43.0",
     "next": "16.2.11",
     "openai": "^6.48.0",
     "pdf-parse": "^2.4.5",

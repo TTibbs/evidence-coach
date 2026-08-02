@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AiDisclosure } from "@/components/ai-disclosure";
 import { RETENTION_POLICY } from "@/lib/retention";
@@ -51,10 +52,6 @@ export default function SettingsPage() {
   }, []);
 
   async function deleteCv(id: string) {
-    if (!confirm("Delete this stored CV file? Your saved experiences will remain.")) {
-      return;
-    }
-
     const res = await fetch(`/api/files/cv?id=${id}`, { method: "DELETE" });
     const data = await res.json();
     if (!res.ok) {
@@ -66,13 +63,6 @@ export default function SettingsPage() {
   }
 
   async function deleteAccount() {
-    if (
-      !confirm(
-        "Delete your account and all associated data? This cannot be undone.",
-      )
-    ) {
-      return;
-    }
     setDeleting(true);
     const res = await fetch("/api/account", { method: "DELETE" });
     const data = await res.json();
@@ -178,13 +168,15 @@ export default function SettingsPage() {
                 >
                   Download
                 </Button>
-                <Button
-                  size="sm"
+                <ConfirmButton
+                  label="Delete file"
+                  confirmLabel="Delete file"
+                  title="Delete stored CV file?"
+                  description={`This removes ${item.original_filename ?? "this uploaded CV"} from storage. Your saved experiences will remain.`}
                   variant="destructive"
-                  onClick={() => deleteCv(item.id)}
-                >
-                  Delete file
-                </Button>
+                  size="sm"
+                  onConfirm={() => deleteCv(item.id)}
+                />
               </div>
             </div>
           ))}
@@ -207,9 +199,15 @@ export default function SettingsPage() {
             <Button variant="outline" onClick={exportAccountData} disabled={exporting}>
               {exporting ? "Exporting…" : "Export account data"}
             </Button>
-            <Button variant="destructive" onClick={deleteAccount} disabled={deleting}>
-              {deleting ? "Deleting…" : "Delete account"}
-            </Button>
+            <ConfirmButton
+              label={deleting ? "Deleting…" : "Delete account"}
+              confirmLabel="Delete account"
+              title="Delete your account?"
+              description="This permanently deletes your account and all associated data. This cannot be undone."
+              variant="destructive"
+              disabled={deleting}
+              onConfirm={deleteAccount}
+            />
           </div>
         </CardContent>
       </Card>

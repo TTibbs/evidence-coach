@@ -55,13 +55,34 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Browser Extension
+
+The browser extension lives in `apps/extension` as an npm workspace powered by
+WXT. It is TypeScript-first and starts with minimal permissions: `activeTab` and
+`scripting`.
+
+```bash
+npm run extension:dev
+npm run extension:build
+npm run extension:zip
+```
+
+For local development, copy `apps/extension/.env.example` to
+`apps/extension/.env.local` if the web app is not running at
+`http://localhost:3000`.
+
+The first capture flow does not scrape job boards in the background. The popup
+captures the active tab after a user click, opens `/job-targets` with a
+client-side draft fragment, and the web app pre-fills the review form before
+saving.
+
 ## Environment
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL for auth and database clients |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase browser/server anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-only admin access for storage/file proxy operations |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase browser/server publishable key |
+| `SUPABASE_SECRET_KEY` | Yes | Server-only admin access for storage/file proxy operations |
 | `NEXT_PUBLIC_AUTH_OAUTH_PROVIDERS` | No | Comma-separated Supabase OAuth providers to show, e.g. `google` or `google,github` |
 | `DATABASE_URL` | Yes for migrations | Postgres connection string used by `npm run db:*` |
 | `AI_PROVIDER` | Yes | `gemini`, `mock`, or gated `openai` |
@@ -78,6 +99,12 @@ Open [http://localhost:3000](http://localhost:3000).
 | `ELEVENLABS_VOICE_ID` | No | Defaults to ElevenLabs Rachel voice |
 | `BETA_PLAN_OVERRIDE` | No | Local/beta plan override: `free`, `prepare`, `intensive`, or `interview-pass` |
 | `DEV_BYPASS_ENTITLEMENTS` | No | Local-only entitlement bypass |
+
+### Extension Environment
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `WXT_EVIDENCE_COACH_URL` | No | Web app URL opened by the extension; defaults to `http://localhost:3000` |
 
 ## Supabase Storage And RLS
 

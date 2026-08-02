@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Evidence Coach Capture</title>
+    <script type="module" src="./main.ts"></script>
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header>
+        <p class="eyebrow">Evidence Coach</p>
+        <h1>Capture job description</h1>
+      </header>
+
+      <section class="status-panel" aria-live="polite">
+        <p id="status">Capture the active tab, then review it in the app.</p>
+      </section>
+
+      <section class="settings-panel" aria-label="Capture settings">
+        <div>
+          <h2>LinkedIn prompt</h2>
+          <p>Show the on-page capture prompt on LinkedIn job pages.</p>
+        </div>
+        <label class="switch">
+          <input id="prompt-toggle" type="checkbox" />
+          <span>Enabled</span>
+        </label>
+      </section>
+
+      <section class="preview" hidden>
+        <label for="description">Captured description</label>
+        <textarea id="description" rows="10"></textarea>
+        <dl>
+          <div>
+            <dt>Role</dt>
+            <dd id="title">-</dd>
+          </div>
+          <div>
+            <dt>Source</dt>
+            <dd id="source">-</dd>
+          </div>
+        </dl>
+      </section>
+
+      <div class="actions">
+        <button id="capture" type="button">Capture page</button>
+        <button id="open" type="button" disabled>Open in app</button>
+        <button id="copy" type="button" disabled>Copy text</button>
+      </div>
+    </main>
+  </body>
+</html>

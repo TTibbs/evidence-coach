@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -159,28 +160,6 @@ export default function BuilderPage() {
     setResult(data.content);
     await refreshHistory();
     toast.success("Edits saved");
-  }
-
-  async function copyOutput() {
-    if (!result) return;
-    const text = edited.trim() || result.user_edited_content || result.content;
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.style.position = "fixed";
-        textarea.style.left = "-9999px";
-        document.body.append(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        textarea.remove();
-      }
-      toast.success("Copied to clipboard");
-    } catch {
-      toast.error("Could not copy content");
-    }
   }
 
   function loadHistoryItem(item: GeneratedItem) {
@@ -362,9 +341,17 @@ export default function BuilderPage() {
                   <Button variant="secondary" onClick={saveEdits}>
                     Save edits
                   </Button>
-                  <Button variant="outline" onClick={copyOutput}>
+                  <CopyButton
+                    value={
+                      edited.trim() ||
+                      result.user_edited_content ||
+                      result.content
+                    }
+                    onCopied={() => toast.success("Copied to clipboard")}
+                    onCopyError={() => toast.error("Could not copy content")}
+                  >
                     Copy
-                  </Button>
+                  </CopyButton>
                 </div>
               </>
             ) : (

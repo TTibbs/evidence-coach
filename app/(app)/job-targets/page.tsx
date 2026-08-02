@@ -24,6 +24,61 @@ type JobTarget = {
   } | null;
 };
 
+type ExtensionDraft = {
+  title?: string;
+  company?: string;
+  description?: string;
+  sourceUrl?: string;
+};
+
+function decodeExtensionDraft(hash: string): ExtensionDraft | null {
+  const match = hash.match(/(?:^#|&)extension-draft=([^&]+)/);
+  if (!match?.[1]) return null;
+
+  try {
+    const encoded = decodeURIComponent(match[1]);
+    const padded = encoded.padEnd(
+      encoded.length + ((4 - (encoded.length % 4)) % 4),
+      "=",
+    );
+    const binary = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes)) as ExtensionDraft;
+  } catch {
+    return null;
+  }
+}
+
+function cleanImportedJobDescription(value?: string) {
+  let text = (value ?? "")
+    .normalize("NFKC")
+    .replace(/\r/g, "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  for (let i = 0; i < 3; i++) {
+    const lines = text.split("\n");
+    while (lines.length > 1 && lines[0].trim() === "") lines.shift();
+
+    const first = (lines[0] ?? "")
+      .replace(/[^a-z0-9]/giu, "")
+      .toLowerCase();
+
+    if (lines.length > 1 && first.length === 1) {
+      lines.shift();
+      text = lines.join("\n").trim();
+      continue;
+    }
+
+    break;
+  }
+
+  return text;
+}
+
 export default function JobTargetsPage() {
   const router = useRouter();
   const [targets, setTargets] = useState<JobTarget[]>([]);
@@ -55,13 +110,33 @@ export default function JobTargetsPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    const draft = decodeExtensionDraft(window.location.hash);
+    if (!draft) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time extension draft hydration
+    setTitle(draft.title?.trim() || "");
+    setCompany(draft.company?.trim() || "");
+    setDescription(cleanImportedJobDescription(draft.description));
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${window.location.search}`,
+    );
+    toast.success("Captured job description loaded. Review it before saving.");
+  }, []);
+
   async function createTarget(e: React.FormEvent) {
     e.preventDefault();
+    const cleanedDescription = cleanImportedJobDescription(description);
+    if (cleanedDescription !== description) {
+      setDescription(cleanedDescription);
+    }
     setCreating(true);
     const res = await fetch("/api/job-targets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, company, description }),
+      body: JSON.stringify({ title, company, description: cleanedDescription }),
     });
     const data = await res.json();
     setCreating(false);

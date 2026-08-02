@@ -1,3 +1,4 @@
+import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   SidebarInset,
@@ -17,7 +18,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </span>
         </header>
         <main className="w-full px-4 py-6 md:px-6 md:py-8">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
+          <div className="mx-auto w-full max-w-6xl">
+            <AppBreadcrumbs />
+            {children}
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>

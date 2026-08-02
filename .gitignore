@@ -17,6 +17,10 @@
 /.next/
 /out/
 
+# browser extension build artifacts
+/apps/extension/.output/
+/apps/extension/.wxt/
+
 # production
 /build
 
@@ -45,6 +49,7 @@ supabase/.temp/
 /content-assets/
 /scripts/capture-launch-assets.mjs
 /scripts/seed-demo-content.mjs
+LAUNCH_CONTENT_DRAFTS.md
 
 # typescript
 *.tsbuildinfo

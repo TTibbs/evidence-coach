@@ -5,6 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RETENTION_POLICY } from "@/lib/retention";
@@ -53,13 +54,6 @@ function FeedbackInner() {
 
   async function deleteAudio() {
     if (!attempt?.audio_path) return;
-    if (
-      !confirm(
-        "Delete this stored audio recording? The transcript and feedback will remain.",
-      )
-    ) {
-      return;
-    }
 
     const res = await fetch(`/api/files/audio?attemptId=${attempt.id}`, {
       method: "DELETE",
@@ -188,9 +182,16 @@ function FeedbackInner() {
             {RETENTION_POLICY.practiceAudio} {RETENTION_POLICY.practiceTranscripts}
           </p>
           {attempt.audio_path && (
-            <Button className="mt-4" variant="destructive" size="sm" onClick={deleteAudio}>
-              Delete audio recording
-            </Button>
+            <ConfirmButton
+              className="mt-4"
+              label="Delete audio recording"
+              confirmLabel="Delete recording"
+              title="Delete audio recording?"
+              description="This removes the stored audio file. The transcript and feedback will remain."
+              variant="destructive"
+              size="sm"
+              onConfirm={deleteAudio}
+            />
           )}
         </CardContent>
       </Card>

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 
 export type CvImportListItem = {
   id: string;
@@ -42,10 +43,6 @@ export function CvImportsList({ imports }: CvImportsListProps) {
   }
 
   async function deleteCv(id: string) {
-    if (!confirm("Delete this stored CV file? Your saved experiences will remain.")) {
-      return;
-    }
-
     setDeletingId(id);
     const res = await fetch(`/api/files/cv?id=${id}`, { method: "DELETE" });
     const data = await res.json();
@@ -110,17 +107,18 @@ export function CvImportsList({ imports }: CvImportsListProps) {
             >
               Download
             </Button>
-            <Button
-              type="button"
-              size="sm"
+            <ConfirmButton
+              label={deletingId === item.id ? "Deleting..." : "Delete file"}
+              confirmLabel="Delete file"
+              title="Delete stored CV file?"
+              description={`This removes ${item.original_filename ?? "this uploaded CV"} from storage. Your saved experiences will remain.`}
               variant="destructive"
+              size="sm"
               disabled={deletingId === item.id}
-              onClick={() => {
+              onConfirm={() => {
                 void deleteCv(item.id);
               }}
-            >
-              {deletingId === item.id ? "Deleting..." : "Delete file"}
-            </Button>
+            />
           </div>
         </li>
       ))}

@@ -15,11 +15,12 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/dashboard";
   const callbackError = searchParams.get("error");
+  const callbackMessage = searchParams.get("message");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(
     callbackError === "oauth_callback"
-      ? "OAuth sign-in could not be completed. Please try again."
+      ? callbackMessage ?? "OAuth sign-in could not be completed. Please try again."
       : null,
   );
   const [loading, setLoading] = useState(false);
